@@ -3,6 +3,7 @@ package scanner
 import (
 	"archive/zip"
 	"encoding/xml"
+	"errors"
 	"io"
 	"path/filepath"
 	"strings"
@@ -160,5 +161,5 @@ func findOPFPath(r *zip.ReadCloser) (string, error) {
 			return f.Name, nil
 		}
 	}
-	return "", nil
+	return "", errors.New("no OPF document found in EPUB")
 }

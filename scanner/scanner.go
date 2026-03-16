@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"calibre-browser/model"
+	"metabrowser/model"
 )
 
 func Scan(root string) (model.Library, error) {
@@ -36,8 +36,9 @@ func Scan(root string) (model.Library, error) {
 		go func() {
 			defer wg.Done()
 			for path := range jobs {
-				book := parseBook(root, path)
-				results <- book
+				if book, ok := parseBook(root, path); ok {
+					results <- book
+				}
 			}
 		}()
 	}
@@ -64,9 +65,12 @@ func Scan(root string) (model.Library, error) {
 	return buildLibrary(books), nil
 }
 
-func parseBook(root, path string) model.Book {
+func parseBook(root, path string) (model.Book, bool) {
 	title, language, series, coverPath, authors, tags, err := parseEpub(path)
-	if err != nil || title == "" {
+	if err != nil {
+		return model.Book{}, false
+	}
+	if title == "" {
 		title = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	}
 
@@ -86,7 +90,7 @@ func parseBook(root, path string) model.Book {
 		Path:      rel,
 		CoverURL:  coverURL,
 		CoverPath: coverPath,
-	}
+	}, true
 }
 
 func buildLibrary(books []model.Book) model.Library {
@@ -158,6 +162,6 @@ func normaliseLanguage(lang string) string {
 		if lang == "" {
 			return "Unknown"
 		}
-		return strings.Title(lang)
+		return strings.ToUpper(lang[:1]) + lang[1:]
 	}
 }

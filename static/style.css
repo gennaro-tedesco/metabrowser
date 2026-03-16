@@ -302,7 +302,7 @@ body {
 
 .book-row-meta-value {
   font-family: var(--font-serif);
-  font-size: var(--fas-md);
+  font-size: var(--fs-md);
   color: var(--subtext1);
   line-height: 1.4;
 }

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"calibre-browser/scanner"
-	"calibre-browser/server"
+	"metabrowser/scanner"
+	"metabrowser/server"
 )
 
 //go:embed static

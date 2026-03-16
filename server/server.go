@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"calibre-browser/model"
+	"metabrowser/model"
 )
 
 func Serve(addr, root string, lib model.Library, static fs.FS) {

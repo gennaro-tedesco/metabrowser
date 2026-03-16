@@ -26,7 +26,7 @@ ______________________________________________________________________
 ```
 .
 ├── main.go               # Entry point: validates CLI arg, calls Scan, calls Serve
-├── go.mod                # Module: calibre-browser, go 1.21, no external dependencies
+├── go.mod                # Module: metabrowser, go 1.21, no external dependencies
 ├── model/
 │   └── book.go           # Book and Library structs (JSON-serialisable)
 ├── scanner/
