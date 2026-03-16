@@ -306,7 +306,7 @@ body {
 }
 
 .book-row-author {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-base);
   color: var(--subtext0);
   white-space: nowrap;
   margin-left: auto;
