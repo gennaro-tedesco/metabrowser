@@ -9,7 +9,7 @@ ______________________________________________________________________
 ## How to build and run
 
 ```bash
-go build -o metadata .
+go build -o metabrowser .
 ./metadata /path/to/epub/directory
 # optional: override address
 ./metadata /path/to/epub/directory localhost:8080

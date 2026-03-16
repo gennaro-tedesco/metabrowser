@@ -212,11 +212,37 @@
 		title.className = 'book-row-title';
 		title.textContent = book.title || '—';
 
+		const chips = document.createElement('div');
+		chips.className = 'book-row-chips';
+
+		if (book.language) {
+			const chip = document.createElement('span');
+			chip.className = 'book-row-chip book-row-chip-language';
+			chip.textContent = book.language;
+			chips.appendChild(chip);
+		}
+
+		if (book.series) {
+			const chip = document.createElement('span');
+			chip.className = 'book-row-chip book-row-chip-series';
+			chip.textContent = book.series;
+			chips.appendChild(chip);
+		}
+
+		(book.tags || []).forEach(tag => {
+			if (!tag) return;
+			const chip = document.createElement('span');
+			chip.className = 'book-row-chip book-row-chip-tag';
+			chip.textContent = tag;
+			chips.appendChild(chip);
+		});
+
 		const author = document.createElement('span');
 		author.className = 'book-row-author';
 		author.textContent = (book.authors || []).join(', ');
 
 		header.appendChild(title);
+		header.appendChild(chips);
 		header.appendChild(author);
 
 		const preview = document.createElement('div');

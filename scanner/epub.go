@@ -84,11 +84,7 @@ func parseEpub(path string) (title, language, series, coverPath string, authors,
 			authors = append(authors, v)
 		}
 	}
-	for _, s := range pkg.Metadata.Subjects {
-		if v := strings.TrimSpace(s); v != "" {
-			tags = append(tags, v)
-		}
-	}
+	tags = splitSubjects(pkg.Metadata.Subjects)
 
 	coverItemID := ""
 	for _, m := range pkg.Metadata.Metas {
@@ -102,6 +98,29 @@ func parseEpub(path string) (title, language, series, coverPath string, authors,
 
 	coverPath = findCoverPath(pkg, opfDir, coverItemID)
 	return
+}
+
+func splitSubjects(subjects []string) []string {
+	var tags []string
+	seen := make(map[string]struct{})
+
+	for _, subject := range subjects {
+		for _, part := range strings.FieldsFunc(subject, func(r rune) bool {
+			return r == ',' || r == ';' || r == '\n' || r == '\r'
+		}) {
+			tag := strings.TrimSpace(part)
+			if tag == "" {
+				continue
+			}
+			if _, ok := seen[tag]; ok {
+				continue
+			}
+			seen[tag] = struct{}{}
+			tags = append(tags, tag)
+		}
+	}
+
+	return tags
 }
 
 func findCoverPath(pkg opfPackage, opfDir, coverItemID string) string {
