@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img width="150" height="150" src="static/logo.png">
+  <img width="250" height="250" src="static/logo.png">
   <br>
 </h1>
 
@@ -11,7 +11,7 @@
 
 ## Usage
 
-Build the executable and run it on the localhost
+Build the executable and run it on localhost
 
 ```sh
 go build -o metabrowser . && ./metabrowser /path/to/libray
