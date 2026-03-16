@@ -108,14 +108,27 @@
 
 			const section = document.createElement('div');
 			section.className = 'group-section';
+			let hoverTimer = null;
 
 			const header = document.createElement('div');
 			header.className = 'group-header';
 			header.innerHTML = `<span>${GROUP_LABELS[key]}</span><span class="group-chevron">&#9654;</span>`;
 			header.addEventListener('click', () => section.classList.toggle('open'));
 
+			section.addEventListener('mouseenter', () => {
+				hoverTimer = setTimeout(() => section.classList.add('hover-open'), 500);
+			});
+
+			section.addEventListener('mouseleave', () => {
+				clearTimeout(hoverTimer);
+				section.classList.remove('hover-open');
+			});
+
 			const items = document.createElement('div');
 			items.className = 'group-items';
+
+			const itemsInner = document.createElement('div');
+			itemsInner.className = 'group-items-inner';
 
 			values.forEach(val => {
 				const bookCount = allBooks.filter(b => matchFilter(b, key, val)).length;
@@ -128,9 +141,10 @@
 					activeFilter = { type: key, value: val };
 					renderFiltered();
 				});
-				items.appendChild(item);
+				itemsInner.appendChild(item);
 			});
 
+			items.appendChild(itemsInner);
 			section.appendChild(header);
 			section.appendChild(items);
 			nav.appendChild(section);

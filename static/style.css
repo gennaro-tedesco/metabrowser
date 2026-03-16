@@ -85,14 +85,23 @@ body {
   transition: transform 0.2s;
 }
 
-.group-section.open .group-chevron { transform: rotate(90deg); }
+.group-section.open .group-chevron,
+.group-section.hover-open .group-chevron { transform: rotate(90deg); }
 
 .group-items {
-  display: none;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
 }
 
-.group-section.open .group-items { display: flex; }
+.group-section.open .group-items,
+.group-section.hover-open .group-items { grid-template-rows: 1fr; }
+
+.group-items-inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 
 .group-item {
   display: flex;
