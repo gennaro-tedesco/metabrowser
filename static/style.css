@@ -39,7 +39,7 @@ body {
 }
 
 .logo {
-  color: var(--mauve);
+  color: var(--blue);
   font-size: var(--fs-md);
   line-height: 1;
 }
@@ -77,10 +77,11 @@ body {
   transition: color 0.15s;
 }
 
-.group-header:hover { color: var(--mauve); }
+.group-header:hover { color: var(--blue); }
 
 .group-chevron {
   font-size: var(--fs-base);
+  color: var(--lavender);
   transition: transform 0.2s;
 }
 
@@ -107,27 +108,27 @@ body {
 
 .group-item:hover {
   color: var(--text);
-  background: var(--surface0);
+  background: color-mix(in srgb, var(--teal) 10%, var(--mantle));
 }
 
 .group-item.active {
-  color: var(--mauve);
-  border-left-color: var(--mauve);
-  background: rgba(203,166,247,0.08);
+  color: var(--blue);
+  border-left-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 16%, transparent);
 }
 
 .group-item-count {
   font-family: var(--font-mono);
   font-size: var(--fs-base);
-  color: var(--overlay0);
-  background: var(--surface0);
+  color: var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 14%, var(--mantle));
   padding: 1px 5px;
   border-radius: 3px;
 }
 
 .group-item.active .group-item-count {
-  background: rgba(203,166,247,0.15);
-  color: var(--mauve);
+  background: color-mix(in srgb, var(--blue) 22%, transparent);
+  color: var(--sky);
 }
 
 .all-item {
@@ -144,7 +145,7 @@ body {
   justify-content: space-between;
 }
 
-.all-item:hover, .all-item.active { color: var(--mauve); }
+.all-item:hover, .all-item.active { color: var(--blue); }
 
 #main {
   flex: 1;
@@ -184,7 +185,10 @@ body {
 }
 
 #search::placeholder { color: var(--overlay0); }
-#search:focus { border-color: var(--mauve); }
+#search:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 35%, transparent);
+}
 
 #search-clear {
   position: absolute;
@@ -201,13 +205,13 @@ body {
   transition: color 0.12s;
 }
 
-#search-clear:hover { color: var(--red); }
+#search-clear:hover { color: var(--peach); }
 #search-clear.visible { display: block; }
 
 #count {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  color: var(--overlay0);
+  color: var(--yellow);
   white-space: nowrap;
 }
 
@@ -232,7 +236,7 @@ body {
 }
 
 .book-row:hover {
-  background: var(--surface0);
+  background: color-mix(in srgb, var(--teal) 8%, var(--base));
 }
 
 .book-row-header {
@@ -295,7 +299,7 @@ body {
   font-size: var(--fs-base);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--overlay0);
+  color: var(--teal);
   min-width: 64px;
   flex-shrink: 0;
 }
@@ -312,7 +316,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: var(--overlay0);
+  color: var(--lavender);
   font-family: var(--font-serif);
   font-style: italic;
   font-size: var(--fs-md);
@@ -381,7 +385,7 @@ body {
   font-family: var(--font-serif);
   font-size: 48px;
   font-style: italic;
-  color: var(--overlay0);
+  color: var(--yellow);
   border-radius: 9px 0 0 9px;
 }
 
@@ -399,7 +403,7 @@ body {
 #modal-title {
   font-family: var(--font-serif);
   font-size: var(--fs-lg);
-  color: var(--mauve);
+  color: var(--blue);
   line-height: 1.3;
 }
 
@@ -420,7 +424,7 @@ body {
   font-size: var(--fs-base);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--overlay0);
+  color: var(--teal);
 }
 
 .modal-value {
@@ -445,4 +449,4 @@ body {
   transition: color 0.12s;
 }
 
-#modal-close:hover { color: var(--red); }
+#modal-close:hover { color: var(--peach); }
