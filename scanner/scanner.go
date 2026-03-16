@@ -2,7 +2,6 @@ package scanner
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -66,27 +65,27 @@ func Scan(root string) (model.Library, error) {
 }
 
 func parseBook(root, path string) model.Book {
-	title, language, series, authors, tags, err := parseEpub(path)
+	title, language, series, coverPath, authors, tags, err := parseEpub(path)
 	if err != nil || title == "" {
 		title = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	}
 
 	rel, _ := filepath.Rel(root, path)
-	dir := filepath.Dir(path)
 
 	coverURL := ""
-	if _, e := os.Stat(filepath.Join(dir, "cover.jpg")); e == nil {
-		coverURL = "/cover/" + filepath.ToSlash(filepath.Dir(rel))
+	if coverPath != "" {
+		coverURL = "/cover/" + filepath.ToSlash(rel) + "?entry=" + coverPath
 	}
 
 	return model.Book{
-		Title:    title,
-		Authors:  authors,
-		Language: normaliseLanguage(language),
-		Series:   series,
-		Tags:     tags,
-		Path:     rel,
-		CoverURL: coverURL,
+		Title:     title,
+		Authors:   authors,
+		Language:  normaliseLanguage(language),
+		Series:    series,
+		Tags:      tags,
+		Path:      rel,
+		CoverURL:  coverURL,
+		CoverPath: coverPath,
 	}
 }
 

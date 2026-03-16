@@ -25,9 +25,17 @@ type opfPackage struct {
 			Content string `xml:"content,attr"`
 		} `xml:"meta"`
 	} `xml:"metadata"`
+	Manifest struct {
+		Items []struct {
+			ID         string `xml:"id,attr"`
+			Href       string `xml:"href,attr"`
+			MediaType  string `xml:"media-type,attr"`
+			Properties string `xml:"properties,attr"`
+		} `xml:"item"`
+	} `xml:"manifest"`
 }
 
-func parseEpub(path string) (title, language, series string, authors, tags []string, err error) {
+func parseEpub(path string) (title, language, series, coverPath string, authors, tags []string, err error) {
 	r, err := zip.OpenReader(path)
 	if err != nil {
 		return
@@ -39,7 +47,7 @@ func parseEpub(path string) (title, language, series string, authors, tags []str
 		return
 	}
 
-	opfDir := filepath.Dir(opfPath)
+	opfDir := filepath.ToSlash(filepath.Dir(opfPath))
 
 	var pkg opfPackage
 	for _, f := range r.File {
@@ -57,7 +65,6 @@ func parseEpub(path string) (title, language, series string, authors, tags []str
 			err = e
 			return
 		}
-		_ = opfDir
 		if e := xml.Unmarshal(data, &pkg); e != nil {
 			err = e
 			return
@@ -81,12 +88,52 @@ func parseEpub(path string) (title, language, series string, authors, tags []str
 			tags = append(tags, v)
 		}
 	}
+
+	coverItemID := ""
 	for _, m := range pkg.Metadata.Metas {
-		if m.Name == "calibre:series" {
+		switch m.Name {
+		case "calibre:series":
 			series = strings.TrimSpace(m.Content)
+		case "cover":
+			coverItemID = strings.TrimSpace(m.Content)
 		}
 	}
+
+	coverPath = findCoverPath(pkg, opfDir, coverItemID)
 	return
+}
+
+func findCoverPath(pkg opfPackage, opfDir, coverItemID string) string {
+	for _, item := range pkg.Manifest.Items {
+		if item.Properties == "cover-image" && isImageMediaType(item.MediaType) {
+			return joinOPFPath(opfDir, item.Href)
+		}
+	}
+	if coverItemID != "" {
+		for _, item := range pkg.Manifest.Items {
+			if item.ID == coverItemID && isImageMediaType(item.MediaType) {
+				return joinOPFPath(opfDir, item.Href)
+			}
+		}
+	}
+	for _, item := range pkg.Manifest.Items {
+		lower := strings.ToLower(item.Href)
+		if isImageMediaType(item.MediaType) && (strings.Contains(lower, "cover") || strings.HasPrefix(strings.ToLower(item.ID), "cover")) {
+			return joinOPFPath(opfDir, item.Href)
+		}
+	}
+	return ""
+}
+
+func joinOPFPath(opfDir, href string) string {
+	if opfDir == "." || opfDir == "" {
+		return href
+	}
+	return opfDir + "/" + href
+}
+
+func isImageMediaType(mt string) bool {
+	return mt == "image/jpeg" || mt == "image/png" || mt == "image/gif" || mt == "image/webp"
 }
 
 func findOPFPath(r *zip.ReadCloser) (string, error) {

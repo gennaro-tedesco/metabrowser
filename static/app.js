@@ -1,30 +1,30 @@
 (function () {
   let allBooks = [];
   let activeFilter = { type: null, value: null };
-  let currentCards = [];
+  let currentRows = [];
 
-  const nav = document.getElementById('nav');
-  const grid = document.getElementById('grid');
-  const search = document.getElementById('search');
-  const searchClear = document.getElementById('search-clear');
-  const count = document.getElementById('count');
+  const nav          = document.getElementById('nav');
+  const list         = document.getElementById('list');
+  const search       = document.getElementById('search');
+  const searchClear  = document.getElementById('search-clear');
+  const count        = document.getElementById('count');
+  const backdrop     = document.getElementById('modal-backdrop');
+  const modalTitle   = document.getElementById('modal-title');
+  const modalMeta    = document.getElementById('modal-meta');
+  const modalCover   = document.getElementById('modal-cover');
+  const modalClose   = document.getElementById('modal-close');
 
-  const GROUP_LABELS = {
-    language: 'Language',
-    series: 'Series',
-    tags: 'Tags',
-    author: 'Author',
-  };
+  const GROUP_LABELS = { language: 'Language', series: 'Series', tags: 'Tags', author: 'Author' };
 
   fetch('/api/library')
     .then(r => r.json())
     .then(lib => {
       allBooks = lib.books || [];
       renderNav(lib.groups || {});
-      renderAll();
+      renderFiltered();
     })
     .catch(() => {
-      grid.innerHTML = '<div class="empty">failed to load library</div>';
+      list.innerHTML = '<div class="empty">failed to load library</div>';
     });
 
   search.addEventListener('input', () => {
@@ -39,6 +39,57 @@
     renderFiltered();
   });
 
+  modalClose.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  function closeModal() {
+    backdrop.classList.remove('open');
+  }
+
+  function openModal(book) {
+    modalTitle.textContent = book.title || '—';
+
+    let img = modalCover.querySelector('img');
+    const placeholder = document.getElementById('modal-cover-placeholder');
+
+    if (book.coverUrl) {
+      if (!img) {
+        img = document.createElement('img');
+        img.alt = '';
+        modalCover.appendChild(img);
+      }
+      img.src = book.coverUrl;
+      img.style.display = 'block';
+      img.onerror = () => {
+        img.style.display = 'none';
+        placeholder.textContent = (book.title || '?').charAt(0).toUpperCase();
+        placeholder.style.display = 'flex';
+      };
+      placeholder.style.display = 'none';
+    } else {
+      if (img) img.style.display = 'none';
+      placeholder.textContent = (book.title || '?').charAt(0).toUpperCase();
+      placeholder.style.display = 'flex';
+    }
+
+    modalMeta.innerHTML = '';
+    [
+      { label: 'Author',   value: (book.authors || []).join(', ') },
+      { label: 'Language', value: book.language || '' },
+      { label: 'Series',   value: book.series || '' },
+      { label: 'Tags',     value: (book.tags || []).join(', ') },
+    ].forEach(({ label, value }) => {
+      if (!value) return;
+      const row = document.createElement('div');
+      row.className = 'modal-row';
+      row.innerHTML = `<span class="modal-label">${label}</span><span class="modal-value">${value}</span>`;
+      modalMeta.appendChild(row);
+    });
+
+    backdrop.classList.add('open');
+  }
+
   function renderNav(groups) {
     const allEl = document.createElement('div');
     allEl.className = 'all-item active';
@@ -51,8 +102,7 @@
     });
     nav.appendChild(allEl);
 
-    const ORDER = ['author', 'language', 'series', 'tags'];
-    ORDER.forEach(key => {
+    ['author', 'language', 'series', 'tags'].forEach(key => {
       const values = groups[key];
       if (!values || values.length === 0) return;
 
@@ -61,18 +111,16 @@
 
       const header = document.createElement('div');
       header.className = 'group-header';
-      header.innerHTML = `<span>${GROUP_LABELS[key] || key}</span><span class="group-chevron">&#9654;</span>`;
+      header.innerHTML = `<span>${GROUP_LABELS[key]}</span><span class="group-chevron">&#9654;</span>`;
       header.addEventListener('click', () => section.classList.toggle('open'));
 
       const items = document.createElement('div');
       items.className = 'group-items';
 
       values.forEach(val => {
-        const bookCount = countBooks(key, val);
+        const bookCount = allBooks.filter(b => matchFilter(b, key, val)).length;
         const item = document.createElement('div');
         item.className = 'group-item';
-        item.dataset.type = key;
-        item.dataset.value = val;
         item.innerHTML = `<span>${val}</span><span class="group-item-count">${bookCount}</span>`;
         item.addEventListener('click', () => {
           clearActive();
@@ -89,10 +137,6 @@
     });
   }
 
-  function countBooks(type, value) {
-    return allBooks.filter(b => matchFilter(b, type, value)).length;
-  }
-
   function matchFilter(book, type, value) {
     switch (type) {
       case 'language': return book.language === value;
@@ -107,25 +151,13 @@
     nav.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
   }
 
-  function renderAll() {
-    activeFilter = { type: null, value: null };
-    renderFiltered();
-  }
-
   function filterBooks() {
     const q = search.value.trim().toLowerCase();
     const { type, value } = activeFilter;
     return allBooks.filter(b => {
       if (type && !matchFilter(b, type, value)) return false;
       if (q) {
-        const parts = [
-          b.title || '',
-          ...(b.authors || []),
-          b.series || '',
-          ...(b.tags || []),
-          b.language || '',
-        ];
-        const haystack = parts.join(' ').toLowerCase();
+        const haystack = [b.title || '', ...(b.authors || []), b.series || '', ...(b.tags || []), b.language || ''].join(' ').toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -137,34 +169,30 @@
     count.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
 
     const incoming = new Set(filtered.map(b => b.path));
-    const existing = new Set(currentCards.map(c => c.dataset.path));
-
-    currentCards.forEach(card => {
-      if (!incoming.has(card.dataset.path)) card.style.display = 'none';
-      else card.style.display = '';
+    currentRows.forEach(row => {
+      row.style.display = incoming.has(row.dataset.path) ? '' : 'none';
     });
 
-    const existingPaths = new Set(currentCards.map(c => c.dataset.path));
+    const existingPaths = new Set(currentRows.map(r => r.dataset.path));
     const toAdd = filtered.filter(b => !existingPaths.has(b.path));
 
     if (toAdd.length > 0) {
       const frag = document.createDocumentFragment();
       toAdd.forEach(b => {
-        const card = bookCard(b);
-        frag.appendChild(card);
-        currentCards.push(card);
+        const row = bookRow(b);
+        frag.appendChild(row);
+        currentRows.push(row);
       });
-      grid.appendChild(frag);
+      list.appendChild(frag);
     }
 
-    const visibleCount = filtered.length;
-    let emptyEl = grid.querySelector('.empty');
-    if (visibleCount === 0) {
+    let emptyEl = list.querySelector('.empty');
+    if (filtered.length === 0) {
       if (!emptyEl) {
         emptyEl = document.createElement('div');
         emptyEl.className = 'empty';
         emptyEl.textContent = 'no books found';
-        grid.appendChild(emptyEl);
+        list.appendChild(emptyEl);
       }
       emptyEl.style.display = '';
     } else if (emptyEl) {
@@ -172,93 +200,64 @@
     }
   }
 
-  function bookCard(book) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'book-card-wrapper';
-    wrapper.dataset.path = book.path;
+  function bookRow(book) {
+    const row = document.createElement('div');
+    row.className = 'book-row';
+    row.dataset.path = book.path;
 
-    const card = document.createElement('div');
-    card.className = 'book-card';
+    const header = document.createElement('div');
+    header.className = 'book-row-header';
 
-    const front = document.createElement('div');
-    front.className = 'book-face book-front';
-
-    if (book.coverUrl) {
-      const img = document.createElement('img');
-      img.className = 'book-cover';
-      img.src = book.coverUrl;
-      img.alt = '';
-      img.loading = 'lazy';
-      img.onerror = () => img.replaceWith(placeholder(book.title));
-      front.appendChild(img);
-    } else {
-      front.appendChild(placeholder(book.title));
-    }
-
-    const frontInfo = document.createElement('div');
-    frontInfo.className = 'book-info';
-
-    const title = document.createElement('div');
-    title.className = 'book-title';
+    const title = document.createElement('span');
+    title.className = 'book-row-title';
     title.textContent = book.title || '—';
-    frontInfo.appendChild(title);
 
-    if (book.authors && book.authors.length > 0) {
-      const author = document.createElement('div');
-      author.className = 'book-author';
-      author.textContent = book.authors.join(', ');
-      frontInfo.appendChild(author);
-    }
+    const author = document.createElement('span');
+    author.className = 'book-row-author';
+    author.textContent = (book.authors || []).join(', ');
 
-    front.appendChild(frontInfo);
+    header.appendChild(title);
+    header.appendChild(author);
 
-    const back = document.createElement('div');
-    back.className = 'book-face book-back';
+    const preview = document.createElement('div');
+    preview.className = 'book-row-preview';
 
-    const backContent = document.createElement('div');
-    backContent.className = 'book-back-content';
+    const inner = document.createElement('div');
+    inner.className = 'book-row-preview-inner';
 
-    const backTitle = document.createElement('div');
-    backTitle.className = 'back-title';
-    backTitle.textContent = book.title || '—';
-    backContent.appendChild(backTitle);
+    const metaPanel = document.createElement('div');
+    metaPanel.className = 'book-row-meta-panel';
 
-    const rows = [
-      { label: 'Author',   value: (book.authors || []).join(', ') },
+    [
       { label: 'Language', value: book.language || '' },
       { label: 'Series',   value: book.series || '' },
       { label: 'Tags',     value: (book.tags || []).join(', ') },
-    ];
-
-    rows.forEach(({ label, value }) => {
+    ].forEach(({ label, value }) => {
       if (!value) return;
-      const row = document.createElement('div');
-      row.className = 'back-row';
-      row.innerHTML = `<span class="back-label">${label}</span><span class="back-value">${value}</span>`;
-      backContent.appendChild(row);
+      const r = document.createElement('div');
+      r.className = 'book-row-meta-row';
+      r.innerHTML = `<span class="book-row-meta-label">${label}</span><span class="book-row-meta-value">${value}</span>`;
+      metaPanel.appendChild(r);
     });
 
-    back.appendChild(backContent);
+    inner.appendChild(metaPanel);
+    preview.appendChild(inner);
+    row.appendChild(header);
+    row.appendChild(preview);
 
-    card.appendChild(front);
-    card.appendChild(back);
-    wrapper.appendChild(card);
+    let hoverTimer = null;
 
-	  wrapper.addEventListener('click', () => {
-  const wasFlipped = wrapper.classList.toggle('flipped');
-  clearTimeout(wrapper._flipTimer);
-  if (wasFlipped) {
-    wrapper._flipTimer = setTimeout(() => wrapper.classList.remove('flipped'), 5000);
-  }
-});
+    row.addEventListener('mouseenter', () => {
+      hoverTimer = setTimeout(() => preview.classList.add('expanded'), 500);
+    });
 
-    return wrapper;
-  }
+    row.addEventListener('mouseleave', () => {
+      clearTimeout(hoverTimer);
+      preview.classList.remove('expanded');
+    });
 
-  function placeholder(title) {
-    const div = document.createElement('div');
-    div.className = 'book-cover-placeholder';
-    div.textContent = (title || '?').charAt(0).toUpperCase();
-    return div;
+    row.addEventListener('click', () => openModal(book));
+
+    return row;
   }
 })();
