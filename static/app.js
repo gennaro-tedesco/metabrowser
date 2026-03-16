@@ -47,6 +47,38 @@
 		backdrop.classList.remove('open');
 	}
 
+	function clearFilters() {
+		activeFilter = { type: null, value: null };
+		search.value = '';
+		searchClear.classList.remove('visible');
+		renderNav(buildGroups());
+		renderFiltered();
+	}
+
+	function applyFilter(type, value) {
+		activeFilter = { type, value };
+		renderNav(buildGroups());
+		renderFiltered();
+	}
+
+	function buildGroups() {
+		const groups = { language: new Set(), series: new Set(), tags: new Set(), author: new Set() };
+
+		allBooks.forEach(book => {
+			if (book.language) groups.language.add(book.language);
+			if (book.series) groups.series.add(book.series);
+			(book.tags || []).forEach(tag => groups.tags.add(tag));
+			(book.authors || []).forEach(author => groups.author.add(author));
+		});
+
+		return {
+			language: Array.from(groups.language).sort(),
+			series: Array.from(groups.series).sort(),
+			tags: Array.from(groups.tags).sort(),
+			author: Array.from(groups.author).sort(),
+		};
+	}
+
 	function openModal(book) {
 		modalTitle.textContent = book.title || '—';
 
@@ -91,15 +123,11 @@
 	}
 
 	function renderNav(groups) {
+		nav.innerHTML = '';
 		const allEl = document.createElement('div');
-		allEl.className = 'all-item active';
+		allEl.className = activeFilter.type ? 'all-item' : 'all-item active';
 		allEl.innerHTML = `<span>All books</span><span class="group-item-count">${allBooks.length}</span>`;
-		allEl.addEventListener('click', () => {
-			clearActive();
-			allEl.classList.add('active');
-			activeFilter = { type: null, value: null };
-			renderFiltered();
-		});
+		allEl.addEventListener('click', clearFilters);
 		nav.appendChild(allEl);
 
 		['author', 'language', 'series', 'tags'].forEach(key => {
@@ -108,6 +136,9 @@
 
 			const section = document.createElement('div');
 			section.className = 'group-section';
+			if (activeFilter.type === key) {
+				section.classList.add('open');
+			}
 			let hoverTimer = null;
 
 			const header = document.createElement('div');
@@ -133,14 +164,9 @@
 			values.forEach(val => {
 				const bookCount = allBooks.filter(b => matchFilter(b, key, val)).length;
 				const item = document.createElement('div');
-				item.className = 'group-item';
+				item.className = activeFilter.type === key && activeFilter.value === val ? 'group-item active' : 'group-item';
 				item.innerHTML = `<span>${val}</span><span class="group-item-count">${bookCount}</span>`;
-				item.addEventListener('click', () => {
-					clearActive();
-					item.classList.add('active');
-					activeFilter = { type: key, value: val };
-					renderFiltered();
-				});
+				item.addEventListener('click', () => applyFilter(key, val));
 				itemsInner.appendChild(item);
 			});
 
@@ -233,6 +259,10 @@
 			const chip = document.createElement('span');
 			chip.className = 'book-row-chip book-row-chip-language';
 			chip.textContent = book.language;
+			chip.addEventListener('click', event => {
+				event.stopPropagation();
+				applyFilter('language', book.language);
+			});
 			chips.appendChild(chip);
 		}
 
@@ -240,6 +270,10 @@
 			const chip = document.createElement('span');
 			chip.className = 'book-row-chip book-row-chip-series';
 			chip.textContent = book.series;
+			chip.addEventListener('click', event => {
+				event.stopPropagation();
+				applyFilter('series', book.series);
+			});
 			chips.appendChild(chip);
 		}
 
@@ -248,6 +282,10 @@
 			const chip = document.createElement('span');
 			chip.className = 'book-row-chip book-row-chip-tag';
 			chip.textContent = tag;
+			chip.addEventListener('click', event => {
+				event.stopPropagation();
+				applyFilter('tags', tag);
+			});
 			chips.appendChild(chip);
 		});
 

@@ -281,6 +281,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.book-row-chip:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 
 .book-row-chip-language {
