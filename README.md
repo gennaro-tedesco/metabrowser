@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img width="150" height="150" src="https://github.com/user-attachments/assets/0f0ef51b-5bf0-4051-8346-3b5caff1e408">
+  <img width="150" height="150" src="static/logo.png">
   <br>
 </h1>
 

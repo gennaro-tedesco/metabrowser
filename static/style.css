@@ -33,23 +33,17 @@ body {
 .sidebar-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   padding: 24px 20px 20px;
   border-bottom: 1px solid var(--surface0);
 }
 
 .logo {
-  color: var(--blue);
-  font-size: var(--fs-md);
-  line-height: 1;
-}
-
-.sidebar-header h1 {
-  font-family: var(--font-serif);
-  font-size: var(--fs-lg);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  color: var(--text);
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 #nav {

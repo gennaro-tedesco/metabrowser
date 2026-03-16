@@ -2,50 +2,49 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>metabrowser</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
-		rel="stylesheet">
-	<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>metabrowser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-	<aside id="sidebar">
-		<header class="sidebar-header">
-			<span class="logo">&#9724;</span>
-			<h1>metabrowser</h1>
-		</header>
-		<nav id="nav"></nav>
-	</aside>
-	<main id="main">
-		<div id="toolbar">
-			<div class="search-wrapper">
-				<input id="search" type="text" placeholder="search titles, authors…" autocomplete="off">
-				<button id="search-clear" title="Clear search">✕</button>
-			</div>
-			<span id="count"></span>
-		</div>
-		<div id="list"></div>
-	</main>
+	<body>
+		<aside id="sidebar">
+			<header class="sidebar-header">
+				<img class="logo" src="logo.png" alt="">
+			</header>
+			<nav id="nav"></nav>
+		</aside>
+  <main id="main">
+    <div id="toolbar">
+      <div class="search-wrapper">
+        <input id="search" type="text" placeholder="search titles, authors…" autocomplete="off">
+        <button id="search-clear" title="Clear search">✕</button>
+      </div>
+      <span id="count"></span>
+    </div>
+    <div id="list"></div>
+  </main>
 
-	<div id="modal-backdrop">
-		<div id="modal" role="dialog" aria-modal="true">
-			<div id="modal-cover">
-				<div id="modal-cover-placeholder"></div>
-			</div>
-			<div id="modal-body">
-				<div id="modal-title"></div>
-				<div id="modal-meta"></div>
-			</div>
-			<button id="modal-close" title="Close">✕</button>
-		</div>
-	</div>
+  <div id="modal-backdrop">
+    <div id="modal" role="dialog" aria-modal="true">
+      <div id="modal-cover">
+        <div id="modal-cover-placeholder"></div>
+      </div>
+      <div id="modal-body">
+        <div id="modal-title"></div>
+        <div id="modal-meta"></div>
+      </div>
+      <button id="modal-close" title="Close">✕</button>
+    </div>
+  </div>
 
-	<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 
 </html>
