@@ -5,6 +5,7 @@
 
 	const nav = document.getElementById('nav');
 	const list = document.getElementById('list');
+	const logo = document.querySelector('.logo');
 	const search = document.getElementById('search');
 	const searchClear = document.getElementById('search-clear');
 	const count = document.getElementById('count');
@@ -38,6 +39,7 @@
 		search.focus();
 		renderFiltered();
 	});
+	logo.addEventListener('click', clearFilters);
 
 	modalClose.addEventListener('click', closeModal);
 	backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
@@ -206,7 +208,7 @@
 
 	function renderFiltered() {
 		const filtered = filterBooks();
-		count.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
+		count.textContent = `${filtered.length}/${allBooks.length}`;
 
 		const incoming = new Set(filtered.map(b => b.path));
 		currentRows.forEach(row => {

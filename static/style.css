@@ -24,7 +24,6 @@ body {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
   background: var(--mantle);
-  border-right: 1px solid var(--surface0);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -35,7 +34,6 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px 20px 20px;
-  border-bottom: 1px solid var(--surface0);
 }
 
 .logo {
@@ -44,6 +42,7 @@ body {
   object-fit: contain;
   display: block;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 #nav {
@@ -138,11 +137,11 @@ body {
   padding: 8px 20px;
   cursor: pointer;
   color: var(--subtext0);
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
   letter-spacing: 0.05em;
   transition: color 0.12s;
   border-bottom: 1px solid var(--surface0);
-  margin-bottom: 8px;
+  margin-bottom: 35px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -163,7 +162,6 @@ body {
   align-items: center;
   gap: 16px;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--surface0);
   background: var(--base);
 }
 
@@ -233,7 +231,6 @@ body {
   flex-direction: column;
   padding: 0 24px;
   cursor: pointer;
-  border-bottom: 1px solid var(--surface0);
   transition: background 0.1s;
   overflow: hidden;
 }
