@@ -3,23 +3,35 @@
 	let navGroups = { language: [], series: [], tags: [], author: [] };
 	let navCounts = { language: {}, series: {}, tags: {}, author: {} };
 	let activeFilters = createEmptyFilters();
+	let currentView = 'library';
+	let statsCharts = [];
+	let isDrilldownSuspended = false;
+	let currentDrilldown = null;
+	let drilldownBaseFilters = null;
 
 	const navRefs = { language: new Map(), series: new Map(), tags: new Map(), author: new Map() };
 	const sectionRefs = new Map();
 
 	const nav = document.getElementById('nav');
 	const list = document.getElementById('list');
+	const stats = document.getElementById('stats');
 	const logo = document.querySelector('.logo');
 	const search = document.getElementById('search');
 	const searchClear = document.getElementById('search-clear');
 	const count = document.getElementById('count');
+	const viewToggle = document.getElementById('view-toggle');
 	const backdrop = document.getElementById('modal-backdrop');
 	const modalTitle = document.getElementById('modal-title');
 	const modalMeta = document.getElementById('modal-meta');
 	const modalCover = document.getElementById('modal-cover');
 	const modalClose = document.getElementById('modal-close');
+	const drilldownBackdrop = document.getElementById('drilldown-backdrop');
+	const drilldownTitle = document.getElementById('drilldown-title');
+	const drilldownBody = document.getElementById('drilldown-body');
+	const drilldownClose = document.getElementById('drilldown-close');
 
 	const GROUP_LABELS = { language: 'Language', series: 'Series', tags: 'Tags', author: 'Author' };
+	const CHART_PALETTE_VARS = ['--blue', '--lavender', '--teal', '--yellow', '--pink', '--peach', '--green', '--sky', '--rosewater', '--flamingo', '--sapphire', '--red', '--maroon'];
 
 	fetch('/api/library')
 		.then(r => r.json())
@@ -47,10 +59,26 @@
 		renderFiltered();
 	});
 
+	viewToggle.addEventListener('click', toggleView);
 	logo.addEventListener('click', clearFilters);
 	modalClose.addEventListener('click', closeModal);
-	backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
-	document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+	backdrop.addEventListener('click', event => {
+		if (event.target === backdrop) closeModal();
+	});
+	drilldownClose.addEventListener('click', closeDrilldownModal);
+	drilldownBackdrop.addEventListener('click', event => {
+		if (event.target === drilldownBackdrop) closeDrilldownModal();
+	});
+	document.addEventListener('keydown', event => {
+		if (event.key !== 'Escape') return;
+		if (backdrop.classList.contains('open')) {
+			closeModal();
+			return;
+		}
+		if (drilldownBackdrop.classList.contains('open')) {
+			closeDrilldownModal();
+		}
+	});
 
 	function createEmptyFilters() {
 		return {
@@ -58,6 +86,15 @@
 			series: new Set(),
 			tags: new Set(),
 			author: new Set(),
+		};
+	}
+
+	function cloneFilters(filters) {
+		return {
+			language: new Set(filters.language),
+			series: new Set(filters.series),
+			tags: new Set(filters.tags),
+			author: new Set(filters.author),
 		};
 	}
 
@@ -126,8 +163,56 @@
 		renderFiltered();
 	}
 
+	function toggleView() {
+		if (currentView === 'library') {
+			currentView = 'stats';
+			viewToggle.textContent = 'Library';
+			list.classList.add('hidden');
+			stats.classList.remove('hidden');
+			renderStatsView(filterBooks());
+			return;
+		}
+
+		currentView = 'library';
+		viewToggle.textContent = 'Stats';
+		closeDrilldownModal();
+		destroyCharts(statsCharts);
+		stats.innerHTML = '';
+		stats.classList.add('hidden');
+		list.classList.remove('hidden');
+		renderFiltered();
+	}
+
 	function closeModal() {
 		backdrop.classList.remove('open');
+		if (isDrilldownSuspended) {
+			resumeDrilldownModal();
+		}
+	}
+
+	function closeDrilldownModal() {
+		if (drilldownBaseFilters) {
+			activeFilters = cloneFilters(drilldownBaseFilters);
+			drilldownBaseFilters = null;
+			updateNavState();
+		}
+		isDrilldownSuspended = false;
+		currentDrilldown = null;
+		drilldownBackdrop.classList.remove('hidden');
+		drilldownBackdrop.classList.remove('open');
+		drilldownBody.innerHTML = '';
+		renderFiltered();
+	}
+
+	function suspendDrilldownModal() {
+		if (!drilldownBackdrop.classList.contains('open')) return;
+		isDrilldownSuspended = true;
+		drilldownBackdrop.classList.add('hidden');
+	}
+
+	function resumeDrilldownModal() {
+		isDrilldownSuspended = false;
+		drilldownBackdrop.classList.remove('hidden');
 	}
 
 	function openModal(book) {
@@ -171,6 +256,111 @@
 		});
 
 		backdrop.classList.add('open');
+	}
+
+	function renderDrilldownContent(sourceType, value, books) {
+		const filteredBooks = sourceType ? books.filter(book => matchFilter(book, sourceType, value)) : books;
+		renderDrilldownTitle(sourceType, value, filteredBooks.length);
+		drilldownBody.innerHTML = '';
+
+		if (!filteredBooks.length) {
+			const empty = document.createElement('div');
+			empty.className = 'empty';
+			empty.textContent = 'no books found';
+			drilldownBody.appendChild(empty);
+		} else {
+			const results = document.createElement('div');
+			results.className = 'drilldown-results';
+			filteredBooks.forEach(book => {
+				results.appendChild(bookRow(book, {
+					disablePreview: true,
+					onOpen() {
+						suspendDrilldownModal();
+						openModal(book);
+					},
+				}));
+			});
+			drilldownBody.appendChild(results);
+		}
+	}
+
+	function openDrilldownModal(sourceType, value, books) {
+		if (!currentDrilldown) {
+			drilldownBaseFilters = cloneFilters(activeFilters);
+		}
+		currentDrilldown = { sourceType, value };
+		isDrilldownSuspended = false;
+		drilldownBackdrop.classList.remove('hidden');
+		renderDrilldownContent(sourceType, value, books);
+
+		drilldownBackdrop.classList.add('open');
+	}
+
+	function renderDrilldownTitle(sourceType, value, countValue) {
+		drilldownTitle.innerHTML = '';
+
+		const filtersWrap = document.createElement('div');
+		filtersWrap.className = 'drilldown-title-filters';
+
+		const seen = new Set();
+		if (sourceType && value) {
+			filtersWrap.appendChild(drilldownTitleChip(sourceType, value));
+			seen.add(`${sourceType}:${value}`);
+		}
+
+		Object.entries(activeFilters).forEach(([type, values]) => {
+			values.forEach(activeValue => {
+				const key = `${type}:${activeValue}`;
+				if (seen.has(key)) return;
+				filtersWrap.appendChild(drilldownTitleChip(type, activeValue));
+				seen.add(key);
+			});
+		});
+
+		const countBadge = document.createElement('span');
+		countBadge.className = 'group-item-count';
+		countBadge.textContent = countValue;
+
+		drilldownTitle.appendChild(filtersWrap);
+		drilldownTitle.appendChild(countBadge);
+	}
+
+	function drilldownTitleChip(type, value) {
+		const chip = document.createElement('button');
+		chip.type = 'button';
+		chip.className = `book-row-chip ${drilldownChipClass(type)}`;
+		chip.textContent = value;
+		chip.addEventListener('click', event => {
+			event.stopPropagation();
+			handleDrilldownTitleChipClick(type, value);
+		});
+		return chip;
+	}
+
+	function handleDrilldownTitleChipClick(type, value) {
+		if (currentDrilldown && currentDrilldown.sourceType === type && currentDrilldown.value === value) {
+			currentDrilldown = null;
+			renderFiltered();
+			return;
+		}
+
+		if (!activeFilters[type].has(value)) return;
+		activeFilters[type].delete(value);
+		updateNavState();
+		renderFiltered();
+	}
+
+	function drilldownChipClass(type) {
+		switch (type) {
+			case 'language':
+				return 'book-row-chip-language';
+			case 'series':
+				return 'book-row-chip-series';
+			case 'tags':
+				return 'book-row-chip-tag';
+			default:
+				return 'book-row-chip-tag';
+		}
 	}
 
 	function renderNav() {
@@ -294,6 +484,23 @@
 	function renderFiltered() {
 		const filtered = filterBooks();
 		count.textContent = `${filtered.length}/${allBooks.length}`;
+
+		if (currentView === 'stats') {
+			renderStatsView(filtered);
+			if (drilldownBackdrop.classList.contains('open') && !isDrilldownSuspended) {
+				if (currentDrilldown) {
+					renderDrilldownContent(currentDrilldown.sourceType, currentDrilldown.value, filtered);
+				} else {
+					renderDrilldownContent(null, null, filtered);
+				}
+			}
+			return;
+		}
+
+		renderBookList(filtered);
+	}
+
+	function renderBookList(filtered) {
 		list.innerHTML = '';
 
 		if (filtered.length === 0) {
@@ -311,7 +518,133 @@
 		list.appendChild(frag);
 	}
 
-	function bookRow(book) {
+	function renderStatsView(books) {
+		destroyCharts(statsCharts);
+		stats.innerHTML = '';
+
+		if (books.length === 0) {
+			const emptyEl = document.createElement('div');
+			emptyEl.className = 'empty';
+			emptyEl.textContent = 'no books found';
+			stats.appendChild(emptyEl);
+			return;
+		}
+
+		['tags', 'series', 'language'].forEach(type => {
+			const card = document.createElement('section');
+			card.className = 'stats-card';
+			card.innerHTML = `<div class="stats-card-label">${GROUP_LABELS[type]}</div>`;
+
+			const distribution = buildDistribution(books, type);
+			if (distribution.labels.length === 0) {
+				const emptyEl = document.createElement('div');
+				emptyEl.className = 'empty';
+				emptyEl.textContent = 'no data';
+				card.appendChild(emptyEl);
+				stats.appendChild(card);
+				return;
+			}
+
+			const canvasWrap = document.createElement('div');
+			canvasWrap.className = 'stats-canvas-wrap';
+			const canvas = document.createElement('canvas');
+			canvasWrap.appendChild(canvas);
+			card.appendChild(canvasWrap);
+			stats.appendChild(card);
+			statsCharts.push(createDonutChart(canvas, distribution, true, (event, elements, chart) => {
+				if (!elements.length) return;
+				const selectedIndex = elements[0].index;
+				openDrilldownModal(type, chart.data.labels[selectedIndex], books);
+			}));
+		});
+	}
+
+	function buildDistribution(books, type) {
+		const counts = new Map();
+
+		books.forEach(book => {
+			getBookValues(book, type).forEach(value => {
+				counts.set(value, (counts.get(value) || 0) + 1);
+			});
+		});
+
+		const entries = Array.from(counts.entries()).sort((a, b) => {
+			if (b[1] !== a[1]) return b[1] - a[1];
+			return a[0].localeCompare(b[0], undefined, { sensitivity: 'base' });
+		});
+
+		return {
+			labels: entries.map(entry => entry[0]),
+			values: entries.map(entry => entry[1]),
+		};
+	}
+
+	function getBookValues(book, type) {
+		switch (type) {
+			case 'language':
+				return book.language ? [book.language] : [];
+			case 'series':
+				return book.series ? [book.series] : [];
+			case 'tags':
+				return (book.tags || []).filter(Boolean);
+			case 'author':
+				return (book.authors || []).filter(Boolean);
+			default:
+				return [];
+		}
+	}
+
+	function createDonutChart(canvas, distribution, clickable, onClick) {
+		const styles = getComputedStyle(document.documentElement);
+		const palette = CHART_PALETTE_VARS.map(name => styles.getPropertyValue(name).trim()).filter(Boolean);
+		const backgroundColor = distribution.labels.map((_, index) => palette[index % palette.length]);
+
+		return new Chart(canvas, {
+			type: 'doughnut',
+			data: {
+				labels: distribution.labels,
+				datasets: [{
+					data: distribution.values,
+					backgroundColor,
+					borderColor: styles.getPropertyValue('--mantle').trim(),
+					borderWidth: 2,
+					hoverOffset: 10,
+				}],
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				cutout: '62%',
+				animation: {
+					duration: 220,
+				},
+				plugins: {
+					legend: {
+						display: false,
+					},
+					tooltip: {
+						callbacks: {
+							label(context) {
+								const value = context.raw;
+								const suffix = value === 1 ? 'book' : 'books';
+								return `${context.label}: ${value} ${suffix}`;
+							},
+						},
+					},
+				},
+				onClick: clickable ? onClick : null,
+			},
+		});
+	}
+
+	function destroyCharts(charts) {
+		while (charts.length) {
+			const chart = charts.pop();
+			chart.destroy();
+		}
+	}
+
+	function bookRow(book, options = {}) {
 		const row = document.createElement('div');
 		row.className = 'book-row';
 		row.dataset.path = book.path;
@@ -396,16 +729,26 @@
 
 		let hoverTimer = null;
 
-		row.addEventListener('mouseenter', () => {
-			hoverTimer = setTimeout(() => preview.classList.add('expanded'), 500);
-		});
+		if (options.disablePreview) {
+			row.classList.add('book-row-static');
+		} else {
+			row.addEventListener('mouseenter', () => {
+				hoverTimer = setTimeout(() => preview.classList.add('expanded'), 500);
+			});
 
-		row.addEventListener('mouseleave', () => {
-			clearTimeout(hoverTimer);
-			preview.classList.remove('expanded');
-		});
+			row.addEventListener('mouseleave', () => {
+				clearTimeout(hoverTimer);
+				preview.classList.remove('expanded');
+			});
+		}
 
-		row.addEventListener('click', () => openModal(book));
+		row.addEventListener('click', () => {
+			if (options.onOpen) {
+				options.onOpen(book);
+				return;
+			}
+			openModal(book);
+		});
 
 		return row;
 	}
