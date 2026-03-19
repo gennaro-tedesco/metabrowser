@@ -23,8 +23,11 @@
 	  <main id="main">
 	    <div id="toolbar">
 	      <div class="search-wrapper">
-	        <input id="search" type="text" placeholder="search titles, authors…" autocomplete="off">
-	        <button id="search-clear" title="Clear search">✕</button>
+	        <div class="search-input-row">
+	          <div id="active-filters"></div>
+	          <input id="search" type="text" placeholder="search titles, authors…" autocomplete="off">
+	          <button id="search-clear" title="Clear search">✕</button>
+	        </div>
 	      </div>
 	      <span id="count"></span>
 	      <button id="view-toggle" type="button">Stats</button>

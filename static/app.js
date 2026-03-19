@@ -18,6 +18,7 @@
 	const logo = document.querySelector('.logo');
 	const search = document.getElementById('search');
 	const searchClear = document.getElementById('search-clear');
+	const activeFiltersEl = document.getElementById('active-filters');
 	const count = document.getElementById('count');
 	const viewToggle = document.getElementById('view-toggle');
 	const backdrop = document.getElementById('modal-backdrop');
@@ -285,7 +286,7 @@
 	}
 
 	function openDrilldownModal(sourceType, value, books) {
-		if (!currentDrilldown) {
+		if (!drilldownBaseFilters) {
 			drilldownBaseFilters = cloneFilters(activeFilters);
 		}
 		currentDrilldown = { sourceType, value };
@@ -442,6 +443,34 @@
 				item.classList.toggle('active', isFilterActive(type, value));
 			});
 		});
+
+		renderActiveFilterChips();
+	}
+
+	function renderActiveFilterChips() {
+		activeFiltersEl.innerHTML = '';
+		const frag = document.createDocumentFragment();
+
+		['language', 'series', 'tags', 'author'].forEach(type => {
+			activeFilters[type].forEach(value => {
+				frag.appendChild(activeFilterChip(type, value));
+			});
+		});
+
+		activeFiltersEl.appendChild(frag);
+		activeFiltersEl.classList.toggle('visible', activeFiltersEl.childElementCount > 0);
+	}
+
+	function activeFilterChip(type, value) {
+		const chip = document.createElement('button');
+		chip.type = 'button';
+		chip.className = `book-row-chip toolbar-filter-chip ${drilldownChipClass(type)}`;
+		chip.textContent = value;
+		chip.addEventListener('click', event => {
+			event.stopPropagation();
+			applyFilter(type, value);
+		});
+		return chip;
 	}
 
 	function matchFilter(book, type, value) {
