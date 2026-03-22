@@ -1191,6 +1191,7 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 				section.classList.remove('hover-open');
 			});
 		});
+      localStorage.setItem('lastRead', JSON.stringify({path: '{{.EncodedPath}}', chapter: {{.CurrentIndex}}, title: '{{.Title}}'}));
       window.openPreferences = function() { window.location.href = '/?openPrefs=1'; };
 	})();
   </script>
@@ -1889,7 +1890,6 @@ func extractChapterTitle(chapterHTML []byte) string {
 	return ""
 }
 
-
 func injectReaderBaseline(doc *xhtml.Node) {
 	head := findHTMLNode(doc, "head")
 	if head == nil {
@@ -1900,10 +1900,10 @@ func injectReaderBaseline(doc *xhtml.Node) {
 		Type: xhtml.ElementNode,
 		Data: "script",
 	}
-		script.AppendChild(&xhtml.Node{
-			Type: xhtml.TextNode,
-			Data: `(function(){var bg=localStorage.getItem('reader:bg')||'#073541';var fg=localStorage.getItem('reader:fg')||'#fdf6e2';var size=localStorage.getItem('reader:size')||'16px';var padX=localStorage.getItem('reader:px')||'72px';document.documentElement.style.setProperty('--reader-bg',bg);document.documentElement.style.setProperty('--reader-fg',fg);document.documentElement.style.setProperty('--reader-size',size);document.documentElement.style.setProperty('--reader-pad-x',padX);}());`,
-		})
+	script.AppendChild(&xhtml.Node{
+		Type: xhtml.TextNode,
+		Data: `(function(){var bg=localStorage.getItem('reader:bg')||'#073541';var fg=localStorage.getItem('reader:fg')||'#fdf6e2';var size=localStorage.getItem('reader:size')||'16px';var padX=localStorage.getItem('reader:px')||'72px';document.documentElement.style.setProperty('--reader-bg',bg);document.documentElement.style.setProperty('--reader-fg',fg);document.documentElement.style.setProperty('--reader-size',size);document.documentElement.style.setProperty('--reader-pad-x',padX);}());`,
+	})
 	head.AppendChild(script)
 
 	style := &xhtml.Node{

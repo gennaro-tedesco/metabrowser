@@ -473,6 +473,7 @@ body.sidebar-collapsed #sidebar {
   display: none !important;
 }
 
+#continue-reading,
 #view-toggle {
   background: var(--surface0);
   border: 1px solid var(--surface1);
@@ -488,12 +489,14 @@ body.sidebar-collapsed #sidebar {
   margin: 0;
 }
 
+#continue-reading:hover,
 #view-toggle:hover {
   color: var(--mauve);
   border-color: var(--mauve);
   background: color-mix(in srgb, var(--mauve) 12%, var(--surface0));
 }
 
+#continue-reading svg,
 #view-toggle svg {
   width: var(--fs-md);
   height: var(--fs-md);

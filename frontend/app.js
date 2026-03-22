@@ -27,6 +27,7 @@
 	const drilldownTitle = document.getElementById('drilldown-title');
 	const drilldownBody = document.getElementById('drilldown-body');
 	const drilldownClose = document.getElementById('drilldown-close');
+	const continueReading = document.getElementById('continue-reading');
 
 	const GROUP_LABELS = { language: 'Language', series: 'Series', tags: 'Tags', author: 'Author' };
 	const CHART_PALETTE_VARS = ['--blue', '--lavender', '--teal', '--yellow', '--pink', '--peach', '--green', '--sky', '--rosewater', '--flamingo', '--sapphire', '--red', '--maroon'];
@@ -350,6 +351,19 @@
 		applyUIConfig(cfg);
 		initAppMenu(cfg);
 	});
+
+	(function initContinueReading() {
+		try {
+			var data = JSON.parse(localStorage.getItem('lastRead'));
+			if (data && data.path) {
+				continueReading.title = 'Continue reading: ' + (data.title || '');
+				continueReading.style.display = '';
+				continueReading.addEventListener('click', function() {
+					window.location.href = '/read/' + data.path + '?chapter=' + (data.chapter || 0);
+				});
+			}
+		} catch (e) {}
+	})();
 
 	search.addEventListener('input', () => {
 		searchClear.classList.toggle('visible', search.value.length > 0);
