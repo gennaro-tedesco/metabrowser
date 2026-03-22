@@ -136,41 +136,97 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
       flex: 1;
     }
     .reader-toc {
+      flex: 1;
       padding: 14px 0;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--surface1) transparent;
     }
-    .reader-toc-item {
-      display: block;
-      padding: 9px 20px 9px 24px;
+    .group-section {
+      margin-bottom: 4px;
+    }
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 20px;
+      cursor: pointer;
+      user-select: none;
+      color: var(--overlay1);
+      font-size: var(--fs-base);
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      transition: color 0.15s;
+    }
+    .group-header:hover {
+      color: var(--blue);
+    }
+    .group-chevron {
+      font-size: var(--fs-base);
+      color: var(--lavender);
+      transition: transform 0.2s;
+    }
+    .group-section.open .group-chevron,
+    .group-section.hover-open .group-chevron {
+      transform: rotate(90deg);
+    }
+    .group-items {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.22s ease;
+    }
+    .group-section.open .group-items,
+    .group-section.hover-open .group-items {
+      grid-template-rows: 1fr;
+    }
+    .group-items-inner {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .group-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 20px 6px 28px;
+      cursor: pointer;
+      color: var(--subtext0);
+      font-size: var(--fs-base);
+      transition: color 0.12s, background 0.12s;
       border-left: 2px solid transparent;
+      text-decoration: none;
+    }
+    .group-item:link,
+    .group-item:visited {
       color: var(--subtext0);
       text-decoration: none;
-      transition: background 0.12s, color 0.12s, border-color 0.12s;
     }
-    .reader-toc-item:hover {
-      background: color-mix(in srgb, var(--teal) 10%, var(--mantle));
+    .group-item:hover,
+    .group-item:visited:hover {
       color: var(--text);
+      background: color-mix(in srgb, var(--teal) 10%, var(--mantle));
+      text-decoration: none;
     }
-    .reader-toc-item.active {
+    .group-item.active {
+      color: var(--blue);
       border-left-color: var(--blue);
       background: color-mix(in srgb, var(--blue) 16%, transparent);
-      color: var(--text);
     }
-    .reader-toc-index {
-      display: block;
-      font-family: var(--font-mono);
-      font-size: var(--fs-xs);
-      color: var(--yellow);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .group-header-link {
+      flex: 1;
+      color: inherit;
+      text-decoration: none;
+      min-width: 0;
     }
-    .reader-toc-title {
+    .group-header-link:link,
+    .group-header-link:visited {
+      color: inherit;
+      text-decoration: none;
+    }
+    .group-item-label {
       display: block;
-      margin-top: 3px;
-      font-size: var(--fs-base);
-      line-height: 1.35;
+      min-width: 0;
     }
     .reader-main {
       min-width: 0;
@@ -211,13 +267,13 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
       border-radius: 3px;
       white-space: nowrap;
     }
-    .reader-frame-wrap {
-      position: relative;
-      flex: 1;
-      min-height: 0;
-      padding: 20px 24px 24px;
-    }
-    .reader-page-tools {
+	    .reader-frame-wrap {
+	      position: relative;
+	      flex: 1;
+	      min-height: 0;
+	      padding: 20px 24px 24px;
+	    }
+	    .reader-page-tools {
       position: absolute;
       top: 32px;
       left: 36px;
@@ -273,8 +329,9 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
     }
     .reader-control-symbol {
       color: var(--yellow);
-      font-size: var(--fs-md);
       line-height: 1;
+      display: flex;
+      align-items: center;
     }
 	.reader-control-bubble {
 		position: relative;
@@ -284,27 +341,33 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 		min-width: 22px;
 		min-height: 22px;
 	}
-	.reader-current-swatch,
-	.reader-current-line {
-		position: relative;
-		z-index: 1;
-		width: 22px;
+	    .reader-current-swatch,
+	    .reader-current-line,
+	    .reader-current-size {
+	      position: relative;
+	      z-index: 1;
+	      width: 22px;
 		height: 22px;
 		border-radius: 999px;
 		border: 1px solid color-mix(in srgb, var(--surface1) 75%, transparent);
       flex: 0 0 auto;
     }
-    .reader-current-line {
-      width: auto;
-      min-width: 28px;
-      padding: 0 7px;
+	    .reader-current-line,
+	    .reader-current-size {
+	      width: auto;
+	      min-width: 28px;
+	      padding: 0 7px;
       background: color-mix(in srgb, var(--surface0) 55%, transparent);
       color: var(--text);
       font-family: var(--font-mono);
-      font-size: var(--fs-xs);
-      line-height: 20px;
-      text-align: center;
-    }
+	      font-size: var(--fs-xs);
+	      line-height: 20px;
+	      text-align: center;
+	    }
+	    .reader-current-size {
+	      font-size: 15px;
+	      line-height: 18px;
+	    }
 	.reader-bubble-menu {
 		position: absolute;
 		top: 0;
@@ -334,54 +397,55 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 		border: 1px solid color-mix(in srgb, var(--surface1) 75%, transparent);
 		transform: translate(-50%, 0) scaleY(1);
 	}
-    .reader-control-bubble.open .reader-current-swatch,
-    .reader-control-group:focus-within .reader-current-swatch,
-    .reader-control-bubble.open .reader-current-line,
-    .reader-control-group:focus-within .reader-current-line {
-      opacity: 0;
-    }
-	.reader-swatch-choice,
-	.reader-line-choice {
-		appearance: none;
-		width: 22px;
-      height: 22px;
-      border: none;
-      border-radius: 999px;
-      padding: 0;
-		cursor: pointer;
-		flex: 0 0 auto;
-		transition: transform 0.12s ease, outline-color 0.12s ease, box-shadow 0.12s ease;
-	}
-	.reader-line-choice {
-		width: 26px;
-		min-width: 0;
-		padding: 0;
-		background: color-mix(in srgb, var(--surface0) 55%, transparent);
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: var(--fs-xs);
-		line-height: 20px;
-		text-transform: lowercase;
-	}
-	.reader-swatch-choice:hover,
-	.reader-line-choice:hover {
-		transform: scale(1.08);
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--mauve) 35%, transparent);
-	}
-	.reader-choice-active {
-		outline: 2px solid var(--text);
-		outline-offset: 1px;
-    }
-    .reader-frame {
-      width: 100%;
-      height: 100%;
-      min-height: 400px;
-      border: 1px solid color-mix(in srgb, var(--surface1) 45%, transparent);
-      border-radius: 12px;
-      background: var(--base);
-      box-shadow: 0 24px 80px color-mix(in srgb, black 20%, transparent);
-    }
-    @media (max-width: 920px) {
+	    .reader-control-bubble.open .reader-current-swatch,
+	    .reader-control-group:focus-within .reader-current-swatch,
+	    .reader-control-bubble.open .reader-current-line,
+	    .reader-control-group:focus-within .reader-current-line,
+	    .reader-control-bubble.open .reader-current-size,
+	    .reader-control-group:focus-within .reader-current-size {
+	      opacity: 0;
+	    }
+	    .reader-swatch-choice {
+	      appearance: none;
+	      width: 22px;
+	      height: 22px;
+	      border: none;
+	      border-radius: 999px;
+	      padding: 0;
+	      cursor: pointer;
+	      flex: 0 0 auto;
+	      transition: transform 0.12s ease, box-shadow 0.12s ease;
+	    }
+	    .reader-swatch-choice:hover {
+	      transform: scale(1.08);
+	      box-shadow: 0 0 0 2px color-mix(in srgb, var(--mauve) 35%, transparent);
+	    }
+	    .reader-choice-active {
+	      outline: 2px solid var(--text);
+	      outline-offset: 1px;
+	    }
+	    .reader-slider {
+	      writing-mode: vertical-lr;
+	      direction: rtl;
+	      appearance: slider-vertical;
+	      width: 26px;
+	      height: 110px;
+	      cursor: pointer;
+	      accent-color: var(--blue);
+	      background: transparent;
+	      margin: 0;
+	      padding: 0;
+	    }
+	    .reader-frame {
+	      width: 100%;
+	      height: 100%;
+	      min-height: 400px;
+	      border: 1px solid color-mix(in srgb, var(--surface1) 45%, transparent);
+	      border-radius: 12px;
+	      background: var(--base);
+	      box-shadow: 0 24px 80px color-mix(in srgb, black 20%, transparent);
+	    }
+	    @media (max-width: 920px) {
       body {
         grid-template-columns: 1fr;
         grid-template-rows: auto minmax(0, 1fr);
@@ -408,20 +472,13 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
       <div class="reader-book-title">{{.Title}}</div>
       {{if .Meta}}<div class="reader-book-meta">{{.Meta}}</div>{{end}}
       <div class="reader-sidebar-actions">
-        <button type="button" class="reader-library-action" aria-label="Library" onclick="window.location.href='/'">📚</button>
+        <button type="button" class="reader-library-action" aria-label="Library" onclick="window.location.href='/'"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></button>
         <span class="reader-sidebar-spacer"></span>
         {{if .Prev}}<a class="reader-action" href="{{.Prev}}" aria-label="Previous">❮</a>{{else}}<span class="reader-action-disabled" aria-hidden="true">❮</span>{{end}}
         {{if .Next}}<a class="reader-action" href="{{.Next}}" aria-label="Next">❯</a>{{else}}<span class="reader-action-disabled" aria-hidden="true">❯</span>{{end}}
       </div>
     </div>
-    <nav id="reader-toc" class="reader-toc">
-      {{range .Chapters}}
-      <a class="reader-toc-item{{if .Active}} active{{end}}" href="{{.URL}}">
-        <span class="reader-toc-index">Chapter {{.Number}}</span>
-        <span class="reader-toc-title">{{.Title}}</span>
-      </a>
-      {{end}}
-    </nav>
+	    <nav id="reader-toc" class="reader-toc">{{.TOCHTML}}</nav>
   </aside>
   <main class="reader-main">
     <div class="reader-toolbar">
@@ -436,7 +493,7 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
         <div id="reader-menu-panel" class="reader-menu-panel">
           <div class="reader-controls">
             <div class="reader-control-group" aria-label="Background color">
-              <span class="reader-control-symbol">▣</span>
+              <span class="reader-control-symbol"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg></span>
               <div class="reader-control-bubble">
                 <span id="reader-bg-current" class="reader-current-swatch" style="background:#073541"></span>
                 <div class="reader-bubble-menu" aria-label="Background color">
@@ -448,7 +505,7 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
               </div>
             </div>
             <div class="reader-control-group" aria-label="Text color">
-              <span class="reader-control-symbol">A</span>
+              <span class="reader-control-symbol"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="m6 16 6-12 6 12"/><path d="M8 12h8"/></svg></span>
               <div class="reader-control-bubble">
                 <span id="reader-fg-current" class="reader-current-swatch" style="background:#fdf6e2"></span>
                 <div class="reader-bubble-menu" aria-label="Text color">
@@ -459,64 +516,83 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
                 </div>
               </div>
             </div>
-            <div class="reader-control-group" aria-label="Line height">
-              <span class="reader-control-symbol">↕</span>
-              <div class="reader-control-bubble">
-                <span id="reader-lh-current" class="reader-current-line">≡</span>
-                <div class="reader-bubble-menu" aria-label="Line height">
-                  <button type="button" class="reader-line-choice" data-lh="1.4">≣</button>
-                  <button type="button" class="reader-line-choice reader-choice-active" data-lh="1.6">≡</button>
-                  <button type="button" class="reader-line-choice" data-lh="1.8">☰</button>
-                  <button type="button" class="reader-line-choice" data-lh="2">⋮</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <iframe id="reader-frame" class="reader-frame" src="{{.ChapterURL}}" title="{{.CurrentChapter}}"></iframe>
-    </div>
-  </main>
-  <script>
-    (function () {
-      const frame = document.getElementById('reader-frame');
-      const pageTools = document.getElementById('reader-page-tools');
-      const menuToggle = document.getElementById('reader-menu-toggle');
-      const menuPanel = document.getElementById('reader-menu-panel');
-      const toc = document.getElementById('reader-toc');
-      const bgCurrent = document.getElementById('reader-bg-current');
-      const fgCurrent = document.getElementById('reader-fg-current');
-      const lhCurrent = document.getElementById('reader-lh-current');
-      const bgChoices = Array.from(document.querySelectorAll('[data-bg]'));
-      const fgChoices = Array.from(document.querySelectorAll('[data-fg]'));
-      const lhChoices = Array.from(document.querySelectorAll('[data-lh]'));
+	            <div class="reader-control-group" aria-label="Line height">
+	              <span class="reader-control-symbol"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m8 18 4 4 4-4"/><path d="m8 6 4-4 4 4"/></svg></span>
+	              <div class="reader-control-bubble">
+	                <span id="reader-lh-current" class="reader-current-line">1.6</span>
+	                <div class="reader-bubble-menu" aria-label="Line height">
+	                  <input type="range" orient="vertical" id="reader-lh-slider" class="reader-slider" min="1.2" max="2.4" step="0.1" value="1.6">
+	                </div>
+	              </div>
+	            </div>
+	            <div class="reader-control-group" aria-label="Font size">
+	              <span class="reader-control-symbol"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 16 2.536-7.328a1.02 1.02 0 0 1 1.928 0L22 16"/><path d="M15.697 14h5.606"/><path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16"/><path d="M3.304 13h6.392"/></svg></span>
+	              <div class="reader-control-bubble">
+	                <span id="reader-size-current" class="reader-current-size">16</span>
+	                <div class="reader-bubble-menu" aria-label="Font size">
+	                  <input type="range" orient="vertical" id="reader-size-slider" class="reader-slider" min="12" max="24" step="1" value="16">
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+	      <iframe id="reader-frame" class="reader-frame" src="{{.IframeSrc}}" title="{{.CurrentChapter}}"></iframe>
+	    </div>
+	  </main>
+	  <script>
+	    (function () {
+	      const frame = document.getElementById('reader-frame');
+	      const pageTools = document.getElementById('reader-page-tools');
+	      const menuToggle = document.getElementById('reader-menu-toggle');
+	      const menuPanel = document.getElementById('reader-menu-panel');
+	      const toc = document.getElementById('reader-toc');
+	      const bgCurrent = document.getElementById('reader-bg-current');
+	      const fgCurrent = document.getElementById('reader-fg-current');
+	      const lhCurrent = document.getElementById('reader-lh-current');
+	      const sizeCurrent = document.getElementById('reader-size-current');
+	      const bgChoices = Array.from(document.querySelectorAll('[data-bg]'));
+	      const fgChoices = Array.from(document.querySelectorAll('[data-fg]'));
+	      const lhSlider = document.getElementById('reader-lh-slider');
+	      const sizeSlider = document.getElementById('reader-size-slider');
 	      const bubbles = Array.from(document.querySelectorAll('.reader-control-bubble'));
 	      const controlGroups = Array.from(document.querySelectorAll('.reader-control-group'));
 	      let bg = localStorage.getItem('reader:bg') || '#073541';
 	      let fg = localStorage.getItem('reader:fg') || '#fdf6e2';
 	      let lh = localStorage.getItem('reader:lh') || '1.6';
+	      let size = localStorage.getItem('reader:size') || '16px';
 	      let hideTimer = null;
 	      let openTimer = null;
 	      let frameCloseBound = false;
 
-		function applyTheme(nextBg, nextFg, nextLh) {
-			const activeBg = nextBg || bg;
-			const activeFg = nextFg || fg;
-			const activeLh = nextLh || lh;
-			const doc = frame.contentDocument;
-			if (!doc) return;
-			doc.documentElement.style.backgroundColor = activeBg;
-			doc.documentElement.style.color = activeFg;
-			doc.documentElement.style.lineHeight = activeLh;
-			if (doc.body) {
-				doc.body.style.backgroundColor = activeBg;
-				doc.body.style.color = activeFg;
-				doc.body.style.lineHeight = activeLh;
+			function applyTheme(nextBg, nextFg, nextLh, nextSize) {
+				const activeBg = nextBg || bg;
+				const activeFg = nextFg || fg;
+				const activeLh = nextLh || lh;
+				const activeSize = nextSize || size;
+				applyThemeToFrame(frame, activeBg, activeFg, activeLh, activeSize);
+				bgCurrent.style.backgroundColor = activeBg;
+				fgCurrent.style.backgroundColor = activeFg;
+				lhCurrent.textContent = activeLh;
+				sizeCurrent.textContent = activeSize.replace('px', '');
 			}
-			bgCurrent.style.backgroundColor = activeBg;
-			fgCurrent.style.backgroundColor = activeFg;
-			lhCurrent.textContent = activeLh === '1.4' ? '≣' : activeLh === '1.6' ? '≡' : activeLh === '1.8' ? '☰' : '⋮';
-		}
+
+			function applyThemeToFrame(frame, activeBg, activeFg, activeLh, activeSize) {
+				const doc = frame.contentDocument;
+				if (!doc) return;
+				doc.documentElement.style.setProperty('--reader-bg', activeBg);
+				doc.documentElement.style.setProperty('--reader-fg', activeFg);
+				doc.documentElement.style.backgroundColor = activeBg;
+				doc.documentElement.style.color = activeFg;
+				doc.documentElement.style.lineHeight = activeLh;
+				doc.documentElement.style.fontSize = activeSize;
+				if (doc.body) {
+					doc.body.style.backgroundColor = activeBg;
+					doc.body.style.color = activeFg;
+					doc.body.style.lineHeight = activeLh;
+					doc.body.style.fontSize = activeSize;
+				}
+			}
 
       function scheduleHide() {
         clearTimeout(openTimer);
@@ -559,7 +635,7 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
       }
 
 		function openBubble(targetBubble) {
-			const current = targetBubble.querySelector('.reader-current-swatch, .reader-current-line');
+			const current = targetBubble.querySelector('.reader-current-swatch, .reader-current-line, .reader-current-size');
 			const menu = targetBubble.querySelector('.reader-bubble-menu');
 			if (current && menu) {
 				menu.style.left = String(current.offsetLeft + current.offsetWidth / 2) + 'px';
@@ -575,14 +651,15 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 
 		function bindChoices(choices, key, setter) {
 			choices.forEach(choice => {
-				choice.addEventListener('mouseenter', function () {
-					const previewBg = key === 'bg' ? choice.dataset[key] : bg;
-					const previewFg = key === 'fg' ? choice.dataset[key] : fg;
-					const previewLh = key === 'lh' ? choice.dataset[key] : lh;
-					applyTheme(previewBg, previewFg, previewLh);
-				});
-				choice.addEventListener('mouseleave', function () {
-					applyTheme();
+					choice.addEventListener('mouseenter', function () {
+						const previewBg = key === 'bg' ? choice.dataset[key] : bg;
+						const previewFg = key === 'fg' ? choice.dataset[key] : fg;
+						const previewLh = key === 'lh' ? choice.dataset[key] : lh;
+						const previewSize = key === 'size' ? choice.dataset[key] : size;
+						applyTheme(previewBg, previewFg, previewLh, previewSize);
+					});
+					choice.addEventListener('mouseleave', function () {
+						applyTheme();
 				});
 				choice.addEventListener('click', function () {
 					choices.forEach(item => item.classList.remove('reader-choice-active'));
@@ -614,9 +691,26 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 			});
 		}
 
-      bindChoices(bgChoices, 'bg', value => { bg = value; });
-      bindChoices(fgChoices, 'fg', value => { fg = value; });
-      bindChoices(lhChoices, 'lh', value => { lh = value; });
+	      bindChoices(bgChoices, 'bg', value => { bg = value; });
+	      bindChoices(fgChoices, 'fg', value => { fg = value; });
+	      lhSlider.value = lh;
+	      lhSlider.addEventListener('input', function () {
+	        lh = lhSlider.value;
+	        applyTheme();
+	      });
+	      lhSlider.addEventListener('change', function () {
+	        localStorage.setItem('reader:lh', lh);
+	        scheduleHide();
+	      });
+	      sizeSlider.value = size.replace('px', '');
+	      sizeSlider.addEventListener('input', function () {
+	        size = sizeSlider.value + 'px';
+	        applyTheme();
+	      });
+	      sizeSlider.addEventListener('change', function () {
+	        localStorage.setItem('reader:size', size);
+	        scheduleHide();
+	      });
 
       controlGroups.forEach(group => {
         const bubble = group.querySelector('.reader-control-bubble');
@@ -677,17 +771,16 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 				menuToggle.classList.remove('rotating');
 			}
 		});
-		if (toc) {
-			const tocKey = 'reader:toc:' + window.location.pathname;
-        const savedTop = localStorage.getItem(tocKey);
-        if (savedTop) toc.scrollTop = Number(savedTop);
+			if (toc) {
+				const tocKey = 'reader:toc:' + window.location.pathname;
+	        const savedTop = localStorage.getItem(tocKey);
+	        if (savedTop) toc.scrollTop = Number(savedTop);
         toc.addEventListener('scroll', function () {
           localStorage.setItem(tocKey, String(toc.scrollTop));
         });
       }
 	      syncActiveChoices(bgChoices, 'bg', bg);
 	      syncActiveChoices(fgChoices, 'fg', fg);
-	      syncActiveChoices(lhChoices, 'lh', lh);
 		frame.addEventListener('load', function () {
 			frameCloseBound = false;
 			applyTheme();
@@ -695,6 +788,21 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 		});
 		bindFrameClose();
 		applyTheme();
+		document.querySelectorAll('.reader-toc .group-section').forEach(function (section) {
+			var hoverTimer = null;
+			section.querySelector('.group-header').addEventListener('click', function (e) {
+				if (!e.target.closest('a')) {
+					section.classList.toggle('open');
+				}
+			});
+			section.addEventListener('mouseenter', function () {
+				hoverTimer = setTimeout(function () { section.classList.add('hover-open'); }, 500);
+			});
+			section.addEventListener('mouseleave', function () {
+				clearTimeout(hoverTimer);
+				section.classList.remove('hover-open');
+			});
+		});
 	})();
   </script>
 </body>
@@ -706,17 +814,12 @@ type readerShellData struct {
 	Meta           string
 	CurrentChapter string
 	Progress       string
-	ChapterURL     string
 	Prev           string
 	Next           string
-	Chapters       []readerTOCItem
-}
-
-type readerTOCItem struct {
-	Number int
-	Title  string
-	URL    string
-	Active bool
+	TOCHTML        template.HTML
+	EncodedPath    string
+	CurrentIndex   int
+	IframeSrc      template.URL
 }
 
 type chapterDoc struct {
@@ -727,6 +830,7 @@ type chapterDoc struct {
 type readerBookData struct {
 	Spine    []string
 	Chapters []chapterDoc
+	TOC      []scanner.TOCEntry
 }
 
 type readerCache struct {
@@ -840,35 +944,44 @@ func serveReaderShell(w http.ResponseWriter, r *http.Request, absEpub, epubRel, 
 		http.NotFound(w, r)
 		return
 	}
-	fragment := r.URL.Query().Get("frag")
 
 	if strings.TrimSpace(title) == "" {
 		title = strings.TrimSuffix(path.Base(epubRel), path.Ext(epubRel))
 	}
 
-	toc := make([]readerTOCItem, 0, len(book.Chapters))
-	for i, chapter := range book.Chapters {
-		toc = append(toc, readerTOCItem{
-			Number: i + 1,
-			Title:  fallbackChapterTitle(chapter.Title, i),
-			URL:    readerShellURL(epubRel, i, ""),
-			Active: i == chapterIndex,
-		})
+	tocLabels := flattenTOCLabels(book.TOC)
+	currentTitle := fallbackChapterTitle(book.Chapters[chapterIndex].Title, chapterIndex)
+	if tocTitle := normalizeWhitespace(tocLabels[book.Spine[chapterIndex]]); tocTitle != "" {
+		currentTitle = tocTitle
 	}
 
 	data := readerShellData{
 		Title:          title,
 		Meta:           meta,
-		CurrentChapter: fallbackChapterTitle(book.Chapters[chapterIndex].Title, chapterIndex),
+		CurrentChapter: currentTitle,
 		Progress:       strconv.Itoa(chapterIndex+1) + " / " + strconv.Itoa(len(book.Chapters)),
-		ChapterURL:     readerChapterDocURL(epubRel, chapterIndex, fragment),
-		Chapters:       toc,
+		TOCHTML:        buildTOCHTML(book.TOC, book.Spine, epubRel, book.Spine[chapterIndex]),
+		EncodedPath:    encodeURLPath(epubRel),
+		CurrentIndex:   chapterIndex,
+		IframeSrc:      template.URL(readerChapterDocURL(epubRel, chapterIndex, r.URL.Query().Get("frag"))),
 	}
-	if chapterIndex > 0 {
-		data.Prev = readerShellURL(epubRel, chapterIndex-1, "")
+	isContinuation := make(map[int]bool)
+	for _, contIndices := range spineContinuations(book.Spine, book.TOC) {
+		for _, ci := range contIndices {
+			isContinuation[ci] = true
+		}
 	}
-	if chapterIndex+1 < len(book.Chapters) {
-		data.Next = readerShellURL(epubRel, chapterIndex+1, "")
+	for prev := chapterIndex - 1; prev >= 0; prev-- {
+		if !isContinuation[prev] {
+			data.Prev = readerShellURL(epubRel, prev, "")
+			break
+		}
+	}
+	for next := chapterIndex + 1; next < len(book.Chapters); next++ {
+		if !isContinuation[next] {
+			data.Next = readerShellURL(epubRel, next, "")
+			break
+		}
 	}
 
 	var out bytes.Buffer
@@ -906,14 +1019,49 @@ func serveChapterDocument(w http.ResponseWriter, r *http.Request, absEpub, epubR
 		return
 	}
 
-	docHTML, err := buildChapterDocument(chapterHTML, epubRel, chapterPath, book.Spine)
+	doc, err := xhtml.Parse(bytes.NewReader(chapterHTML))
 	if err != nil {
+		http.Error(w, "error rendering chapter", http.StatusInternalServerError)
+		return
+	}
+	rewriteDocumentLinks(doc, epubRel, chapterPath, book.Spine)
+
+	if contIndices := spineContinuations(book.Spine, book.TOC)[chapterIndex]; len(contIndices) > 0 {
+		body := findHTMLNode(doc, "body")
+		if body != nil {
+			for _, ci := range contIndices {
+				contHTML, err := readZipEntry(&zr.Reader, book.Spine[ci])
+				if err != nil {
+					continue
+				}
+				contDoc, err := xhtml.Parse(bytes.NewReader(contHTML))
+				if err != nil {
+					continue
+				}
+				rewriteDocumentLinks(contDoc, epubRel, book.Spine[ci], book.Spine)
+				contBody := findHTMLNode(contDoc, "body")
+				if contBody == nil {
+					continue
+				}
+				for child := contBody.FirstChild; child != nil; {
+					next := child.NextSibling
+					contBody.RemoveChild(child)
+					body.AppendChild(child)
+					child = next
+				}
+			}
+		}
+	}
+
+	injectReaderBaseline(doc)
+	var docBuf bytes.Buffer
+	if err := xhtml.Render(&docBuf, doc); err != nil {
 		http.Error(w, "error rendering chapter", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if _, err := w.Write(docHTML); err != nil {
+	if _, err := w.Write(docBuf.Bytes()); err != nil {
 		log.Printf("error writing chapter document for %s: %v", absEpub, err)
 	}
 }
@@ -1113,7 +1261,7 @@ func loadReaderBookData(absEpub string) (readerBookData, error) {
 	}
 	defer zr.Close()
 
-	chapters, err := loadChapterMetadata(&zr.Reader, readerData.Spine, readerData.TOC)
+	chapters, err := loadChapterMetadata(&zr.Reader, readerData.Spine, flattenTOCLabels(readerData.TOC))
 	if err != nil {
 		return readerBookData{}, err
 	}
@@ -1121,7 +1269,217 @@ func loadReaderBookData(absEpub string) (readerBookData, error) {
 	return readerBookData{
 		Spine:    readerData.Spine,
 		Chapters: chapters,
+		TOC:      fallbackTOC(readerData.TOC, readerData.Spine, chapters),
 	}, nil
+}
+
+func fallbackTOC(entries []scanner.TOCEntry, spine []string, chapters []chapterDoc) []scanner.TOCEntry {
+	if len(entries) > 0 {
+		return entries
+	}
+	fallback := make([]scanner.TOCEntry, 0, len(spine))
+	for i, chapter := range chapters {
+		fallback = append(fallback, scanner.TOCEntry{
+			Title: fallbackChapterTitle(chapter.Title, i),
+			Path:  spine[i],
+		})
+	}
+	return fallback
+}
+
+func flattenTOCLabels(entries []scanner.TOCEntry) map[string]string {
+	labels := make(map[string]string)
+	var walk func([]scanner.TOCEntry)
+	walk = func(nodes []scanner.TOCEntry) {
+		for _, node := range nodes {
+			if node.Path != "" && node.Title != "" {
+				if _, ok := labels[node.Path]; !ok {
+					labels[node.Path] = node.Title
+				}
+			}
+			walk(node.Children)
+		}
+	}
+	walk(entries)
+	return labels
+}
+
+func buildTOCHTML(entries []scanner.TOCEntry, spine []string, epubRel, currentPath string) template.HTML {
+	indexByPath := make(map[string]int, len(spine))
+	for i, chapterPath := range spine {
+		indexByPath[chapterPath] = i
+	}
+	entries = attachSpineContinuations(entries, spine)
+	var out strings.Builder
+	renderTOCEntries(&out, entries, indexByPath, epubRel, currentPath)
+	return template.HTML(out.String())
+}
+
+func attachSpineContinuations(entries []scanner.TOCEntry, spine []string) []scanner.TOCEntry {
+	if len(entries) == 0 {
+		return entries
+	}
+	cloned := cloneTOCEntries(entries)
+	entryByPath := make(map[string]*scanner.TOCEntry)
+	indexTOCEntries(cloned, entryByPath)
+	var lastMatched *scanner.TOCEntry
+	segmentCount := make(map[string]int)
+	for _, chapterPath := range spine {
+		if entry, ok := entryByPath[chapterPath]; ok {
+			lastMatched = entry
+			segmentCount[entry.Path] = 1
+			continue
+		}
+		if lastMatched == nil {
+			continue
+		}
+		segmentCount[lastMatched.Path]++
+		lastMatched.Children = append(lastMatched.Children, scanner.TOCEntry{
+			Title:     lastMatched.Title + " · " + strconv.Itoa(segmentCount[lastMatched.Path]),
+			Path:      chapterPath,
+			Synthetic: true,
+		})
+	}
+	return cloned
+}
+
+func spineContinuations(spine []string, toc []scanner.TOCEntry) map[int][]int {
+	primaryPaths := make(map[string]bool)
+	collectTOCPaths(toc, primaryPaths)
+	result := make(map[int][]int)
+	lastPrimary := -1
+	for i, p := range spine {
+		if primaryPaths[p] {
+			lastPrimary = i
+		} else if lastPrimary >= 0 {
+			result[lastPrimary] = append(result[lastPrimary], i)
+		}
+	}
+	return result
+}
+
+func collectTOCPaths(entries []scanner.TOCEntry, paths map[string]bool) {
+	for _, entry := range entries {
+		if entry.Path != "" {
+			paths[entry.Path] = true
+		}
+		collectTOCPaths(entry.Children, paths)
+	}
+}
+
+func renderTOCEntries(out *strings.Builder, entries []scanner.TOCEntry, indexByPath map[string]int, epubRel, currentPath string) bool {
+	hasActive := false
+	for _, entry := range entries {
+		entryActive := renderTOCEntry(out, entry, indexByPath, epubRel, currentPath)
+		hasActive = hasActive || entryActive
+	}
+	return hasActive
+}
+
+func renderTOCEntry(out *strings.Builder, entry scanner.TOCEntry, indexByPath map[string]int, epubRel, currentPath string) bool {
+	active := entry.Path != "" && entry.Path == currentPath
+	title := html.EscapeString(entry.Title)
+
+	if len(entry.Children) == 0 {
+		if href, ok := readerTOCEntryURL(epubRel, entry.Path, indexByPath); ok {
+			renderTOCLink(out, title, href, active, indexByPath[entry.Path])
+		}
+		return active
+	}
+
+	allSynthetic := true
+	for _, child := range entry.Children {
+		if !child.Synthetic {
+			allSynthetic = false
+			break
+		}
+	}
+
+	if allSynthetic {
+		if href, ok := readerTOCEntryURL(epubRel, entry.Path, indexByPath); ok {
+			renderTOCLink(out, title, href, active, indexByPath[entry.Path])
+		}
+		return active
+	}
+
+	realChildren := make([]scanner.TOCEntry, 0, len(entry.Children))
+	for _, child := range entry.Children {
+		if !child.Synthetic {
+			realChildren = append(realChildren, child)
+		}
+	}
+
+	childBuf := &strings.Builder{}
+	childActive := renderTOCEntries(childBuf, realChildren, indexByPath, epubRel, currentPath)
+	branchActive := active || childActive
+
+	href, hasHref := readerTOCEntryURL(epubRel, entry.Path, indexByPath)
+	out.WriteString(`<div class="group-section`)
+	if branchActive {
+		out.WriteString(` open`)
+	}
+	out.WriteString(`">`)
+	out.WriteString(`<div class="group-header">`)
+	if hasHref {
+		out.WriteString(`<a class="group-header-link" href="`)
+		out.WriteString(html.EscapeString(href))
+		out.WriteString(`"><span>`)
+		out.WriteString(title)
+		out.WriteString(`</span></a>`)
+	} else {
+		out.WriteString(`<span>`)
+		out.WriteString(title)
+		out.WriteString(`</span>`)
+	}
+	out.WriteString(`<span class="group-chevron">&#9654;</span></div>`)
+	out.WriteString(`<div class="group-items"><div class="group-items-inner">`)
+	out.WriteString(childBuf.String())
+	out.WriteString(`</div></div></div>`)
+	return branchActive
+}
+
+func renderTOCLink(out *strings.Builder, title, href string, active bool, chapterIndex int) {
+	out.WriteString(`<a class="group-item`)
+	if active {
+		out.WriteString(` active`)
+	}
+	out.WriteString(`" data-toc-chapter="`)
+	out.WriteString(strconv.Itoa(chapterIndex))
+	out.WriteString(`" href="`)
+	out.WriteString(html.EscapeString(href))
+	out.WriteString(`"><span class="group-item-label">`)
+	out.WriteString(title)
+	out.WriteString(`</span></a>`)
+}
+
+func cloneTOCEntries(entries []scanner.TOCEntry) []scanner.TOCEntry {
+	cloned := make([]scanner.TOCEntry, len(entries))
+	for i, entry := range entries {
+		cloned[i] = scanner.TOCEntry{
+			Title:    entry.Title,
+			Path:     entry.Path,
+			Children: cloneTOCEntries(entry.Children),
+		}
+	}
+	return cloned
+}
+
+func indexTOCEntries(entries []scanner.TOCEntry, byPath map[string]*scanner.TOCEntry) {
+	for i := range entries {
+		entry := &entries[i]
+		if entry.Path != "" {
+			byPath[entry.Path] = entry
+		}
+		indexTOCEntries(entry.Children, byPath)
+	}
+}
+
+func readerTOCEntryURL(epubRel, entryPath string, indexByPath map[string]int) (string, bool) {
+	chapterIndex, ok := indexByPath[entryPath]
+	if !ok {
+		return "", false
+	}
+	return readerShellURL(epubRel, chapterIndex, ""), true
 }
 
 func extractChapterTitle(chapterHTML []byte) string {
@@ -1145,21 +1503,6 @@ func extractChapterTitle(chapterHTML []byte) string {
 	return ""
 }
 
-func buildChapterDocument(chapterHTML []byte, epubRel, chapterPath string, spine []string) ([]byte, error) {
-	doc, err := xhtml.Parse(bytes.NewReader(chapterHTML))
-	if err != nil {
-		return nil, err
-	}
-
-	rewriteDocumentLinks(doc, epubRel, chapterPath, spine)
-	injectReaderBaseline(doc)
-
-	var out bytes.Buffer
-	if err := xhtml.Render(&out, doc); err != nil {
-		return nil, err
-	}
-	return out.Bytes(), nil
-}
 
 func injectReaderBaseline(doc *xhtml.Node) {
 	head := findHTMLNode(doc, "head")
@@ -1173,7 +1516,7 @@ func injectReaderBaseline(doc *xhtml.Node) {
 	}
 	script.AppendChild(&xhtml.Node{
 		Type: xhtml.TextNode,
-		Data: `(function(){var bg=localStorage.getItem('reader:bg')||'#073541';var fg=localStorage.getItem('reader:fg')||'#fdf6e2';document.documentElement.style.setProperty('--reader-bg',bg);document.documentElement.style.setProperty('--reader-fg',fg);}());`,
+		Data: `(function(){var bg=localStorage.getItem('reader:bg')||'#073541';var fg=localStorage.getItem('reader:fg')||'#fdf6e2';var size=localStorage.getItem('reader:size')||'16px';document.documentElement.style.setProperty('--reader-bg',bg);document.documentElement.style.setProperty('--reader-fg',fg);document.documentElement.style.setProperty('--reader-size',size);}());`,
 	})
 	head.AppendChild(script)
 
@@ -1186,14 +1529,19 @@ func injectReaderBaseline(doc *xhtml.Node) {
 		Data: `:root {
   --reader-bg: #073541;
   --reader-fg: #fdf6e2;
+  --reader-size: 16px;
 }
 html {
   background: var(--reader-bg);
   color: var(--reader-fg);
+  font-size: var(--reader-size);
 }
 body {
   background: var(--reader-bg);
   color: var(--reader-fg);
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 3rem 3.5rem 4rem;
 }
 ::selection {
   background: rgba(39, 139, 211, 0.35);

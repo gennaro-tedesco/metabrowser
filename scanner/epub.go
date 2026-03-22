@@ -66,7 +66,14 @@ type ncxNavPoint struct {
 
 type ReaderData struct {
 	Spine []string
-	TOC   map[string]string
+	TOC   []TOCEntry
+}
+
+type TOCEntry struct {
+	Title     string
+	Path      string
+	Children  []TOCEntry
+	Synthetic bool
 }
 
 func parseEpub(path string) (title, language, series, coverPath string, authors, tags []string, err error) {
@@ -130,7 +137,7 @@ func ParseSpine(epubPath string) ([]string, error) {
 	return data.Spine, nil
 }
 
-func ParseTOC(epubPath string) (map[string]string, error) {
+func ParseTOC(epubPath string) ([]TOCEntry, error) {
 	data, err := ParseReaderData(epubPath)
 	if err != nil {
 		return nil, err
@@ -169,11 +176,11 @@ func ParseReaderData(epubPath string) (ReaderData, error) {
 	}, nil
 }
 
-func parseTOCFromPackage(r *zip.ReadCloser, pkg opfPackage, opfDir string) map[string]string {
-	if toc := parseNavDocumentTOC(r, pkg, opfDir); len(toc) > 0 {
+func parseTOCFromPackage(r *zip.ReadCloser, pkg opfPackage, opfDir string) []TOCEntry {
+	if toc := parseNavDocumentTOCTree(r, pkg, opfDir); len(toc) > 0 {
 		return toc
 	}
-	if toc := parseNCXTOC(r, pkg, opfDir); len(toc) > 0 {
+	if toc := parseNCXTOCTree(r, pkg, opfDir); len(toc) > 0 {
 		return toc
 	}
 	return nil
@@ -213,7 +220,7 @@ func parseSpine(pkg opfPackage, opfDir string) ([]string, error) {
 	return spine, nil
 }
 
-func parseNavDocumentTOC(r *zip.ReadCloser, pkg opfPackage, opfDir string) map[string]string {
+func parseNavDocumentTOCTree(r *zip.ReadCloser, pkg opfPackage, opfDir string) []TOCEntry {
 	for _, item := range pkg.Manifest.Items {
 		if !strings.Contains(item.Properties, "nav") {
 			continue
@@ -227,26 +234,14 @@ func parseNavDocumentTOC(r *zip.ReadCloser, pkg opfPackage, opfDir string) map[s
 		if err != nil {
 			continue
 		}
-		toc := make(map[string]string)
-		var walk func(*xhtml.Node)
-		walk = func(node *xhtml.Node) {
-			if node.Type == xhtml.ElementNode && node.Data == "nav" && hasTOCType(node) {
-				collectNavLinks(node, navPath, toc)
-				return
-			}
-			for child := node.FirstChild; child != nil; child = child.NextSibling {
-				walk(child)
-			}
-		}
-		walk(doc)
-		if len(toc) > 0 {
+		if toc := findNavTOCEntries(doc, navPath); len(toc) > 0 {
 			return toc
 		}
 	}
 	return nil
 }
 
-func parseNCXTOC(r *zip.ReadCloser, pkg opfPackage, opfDir string) map[string]string {
+func parseNCXTOCTree(r *zip.ReadCloser, pkg opfPackage, opfDir string) []TOCEntry {
 	if pkg.Spine.TOC == "" {
 		return nil
 	}
@@ -268,47 +263,78 @@ func parseNCXTOC(r *zip.ReadCloser, pkg opfPackage, opfDir string) map[string]st
 	if err := xml.Unmarshal(data, &doc); err != nil {
 		return nil
 	}
-	toc := make(map[string]string)
-	for _, point := range doc.NavMap.Points {
-		collectNCXPoints(point, ncxPath, toc)
-	}
-	if len(toc) == 0 {
-		return nil
-	}
-	return toc
+	return collectNCXEntries(doc.NavMap.Points, ncxPath)
 }
 
-func collectNCXPoints(point ncxNavPoint, basePath string, toc map[string]string) {
-	if href := strings.TrimSpace(point.Content.Src); href != "" {
-		target := resolveBookPath(basePath, href)
-		if target != "" {
-			if _, exists := toc[target]; !exists {
-				toc[target] = normalizeTOCLabel(point.NavLabel.Text)
-			}
+func collectNCXEntries(points []ncxNavPoint, basePath string) []TOCEntry {
+	entries := make([]TOCEntry, 0, len(points))
+	for _, point := range points {
+		entry := TOCEntry{
+			Title:    normalizeTOCLabel(point.NavLabel.Text),
+			Path:     resolveBookPath(basePath, strings.TrimSpace(point.Content.Src)),
+			Children: collectNCXEntries(point.Points, basePath),
 		}
+		if entry.Title == "" && entry.Path == "" && len(entry.Children) == 0 {
+			continue
+		}
+		entries = append(entries, entry)
 	}
-	for _, child := range point.Points {
-		collectNCXPoints(child, basePath, toc)
-	}
+	return entries
 }
 
-func collectNavLinks(node *xhtml.Node, basePath string, toc map[string]string) {
-	var walk func(*xhtml.Node)
-	walk = func(current *xhtml.Node) {
-		if current.Type == xhtml.ElementNode && current.Data == "a" {
-			href := strings.TrimSpace(getAttr(current, "", "href"))
-			target := resolveBookPath(basePath, href)
-			if target != "" {
-				if _, exists := toc[target]; !exists {
-					toc[target] = normalizeTOCLabel(nodeText(current))
+func findNavTOCEntries(node *xhtml.Node, basePath string) []TOCEntry {
+	if node.Type == xhtml.ElementNode && node.Data == "nav" && hasTOCType(node) {
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			if child.Type == xhtml.ElementNode && (child.Data == "ol" || child.Data == "ul") {
+				if entries := collectNavListEntries(child, basePath); len(entries) > 0 {
+					return entries
 				}
 			}
 		}
-		for child := current.FirstChild; child != nil; child = child.NextSibling {
-			walk(child)
+		return nil
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		if entries := findNavTOCEntries(child, basePath); len(entries) > 0 {
+			return entries
 		}
 	}
-	walk(node)
+	return nil
+}
+
+func collectNavListEntries(list *xhtml.Node, basePath string) []TOCEntry {
+	var entries []TOCEntry
+	for item := list.FirstChild; item != nil; item = item.NextSibling {
+		if item.Type != xhtml.ElementNode || item.Data != "li" {
+			continue
+		}
+		entry := collectNavItem(item, basePath)
+		if entry.Title == "" && entry.Path == "" && len(entry.Children) == 0 {
+			continue
+		}
+		entries = append(entries, entry)
+	}
+	return entries
+}
+
+func collectNavItem(item *xhtml.Node, basePath string) TOCEntry {
+	entry := TOCEntry{}
+	for child := item.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type != xhtml.ElementNode {
+			continue
+		}
+		switch child.Data {
+		case "a":
+			entry.Title = normalizeTOCLabel(nodeText(child))
+			entry.Path = resolveBookPath(basePath, strings.TrimSpace(getAttr(child, "", "href")))
+		case "span":
+			if entry.Title == "" {
+				entry.Title = normalizeTOCLabel(nodeText(child))
+			}
+		case "ol", "ul":
+			entry.Children = collectNavListEntries(child, basePath)
+		}
+	}
+	return entry
 }
 
 func hasTOCType(node *xhtml.Node) bool {
