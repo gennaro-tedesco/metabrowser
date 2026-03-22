@@ -20,8 +20,8 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
-	"metabrowser/model"
-	"metabrowser/scanner"
+	"colophon/model"
+	"colophon/scanner"
 )
 
 var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYPE html>
@@ -34,9 +34,19 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/themes/solarized-dark.css">
+  <link rel="stylesheet" href="/themes/solarized-light.css">
+  <link rel="stylesheet" href="/themes/catppuccin-mocha.css">
+  <link rel="stylesheet" href="/themes/catppuccin-latte.css">
+  <link rel="stylesheet" href="/themes/nord.css">
+  <link rel="stylesheet" href="/themes/everforest.css">
+  <link rel="stylesheet" href="/themes/tokyonight.css">
+  <link rel="stylesheet" href="/themes/kanagawa.css">
+  <link rel="stylesheet" href="/themes/rose-pine.css">
   <script>
     fetch('/api/config').then(function(r){return r.json();}).then(function(cfg){
       var root = document.documentElement;
+      if (cfg.theme) root.setAttribute('data-theme', cfg.theme);
       if (cfg.uiFontSize > 0) {
         var b = cfg.uiFontSize;
         root.style.setProperty('--fs-xs',   Math.round(b*0.75)+'px');
@@ -53,7 +63,7 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
   </script>
   <style>
     :root {
-      --fs-xs: 15px; --fs-sm: 18px; --fs-base: 20px; --fs-md: 23px; --fs-lg: 33px; --sidebar-w: 280px; --reader-shell-fg: var(--text);
+      --fs-xs: 15px; --fs-sm: 18px; --fs-base: 20px; --fs-md: 23px; --fs-lg: 33px; --sidebar-w: 280px; --reader-shell-fg: var(--text); --reader-progress-book: var(--text); --reader-progress-chapter: color-mix(in srgb, var(--text) 60%, var(--base));
     }
     *, *::before, *::after { box-sizing: border-box; }
     html, body {
@@ -305,6 +315,7 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
       background: color-mix(in srgb, var(--base) 82%, transparent);
     }
     .reader-toolbar-title {
+      flex: 1 1 auto;
       min-width: 0;
     }
     .reader-toolbar-heading {
@@ -323,6 +334,33 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
       padding: 1px 5px;
       border-radius: 3px;
       white-space: nowrap;
+    }
+    .reader-progress-stack {
+      margin-top: 10px;
+      display: grid;
+      gap: 5px;
+    }
+    .reader-progress-row {
+      width: 100%;
+    }
+    .reader-progress-track {
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--surface1) 65%, var(--mantle));
+      overflow: hidden;
+    }
+    .reader-progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.12s ease;
+    }
+    .reader-progress-fill.chapter {
+      background: var(--reader-progress-chapter);
+    }
+    .reader-progress-fill.book {
+      background: var(--reader-progress-book);
     }
 	    .reader-frame-wrap {
 	      position: relative;
@@ -619,6 +657,14 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
     <div class="reader-toolbar">
       <div class="reader-toolbar-title">
         <div class="reader-toolbar-heading">{{.CurrentChapter}}</div>
+        <div class="reader-progress-stack" aria-hidden="true">
+          <div class="reader-progress-row">
+            <div class="reader-progress-track"><div id="reader-chapter-progress-fill" class="reader-progress-fill chapter"></div></div>
+          </div>
+          <div class="reader-progress-row">
+            <div class="reader-progress-track"><div id="reader-book-progress-fill" class="reader-progress-fill book"></div></div>
+          </div>
+        </div>
       </div>
       <div class="reader-progress-badge">{{.Progress}}</div>
     </div>
@@ -632,10 +678,12 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
               <div class="reader-control-bubble">
                 <span id="reader-bg-current" class="reader-current-swatch" style="background:#073541"></span>
                 <div class="reader-bubble-menu" aria-label="Background color">
-                  <button type="button" class="reader-swatch-choice reader-choice-active" data-bg="#073541" style="background:#073541" aria-label="Background color 1"></button>
-                  <button type="button" class="reader-swatch-choice" data-bg="#002b36" style="background:#002b36" aria-label="Background color 2"></button>
-                  <button type="button" class="reader-swatch-choice" data-bg="#1e1e1e" style="background:#1e1e1e" aria-label="Background color 3"></button>
-                  <button type="button" class="reader-swatch-choice" data-bg="#fdf6e3" style="background:#fdf6e3" aria-label="Background color 4"></button>
+                  <button type="button" class="reader-swatch-choice reader-choice-active" data-bg="" aria-label="Background color 1"></button>
+                  <button type="button" class="reader-swatch-choice" data-bg="" aria-label="Background color 2"></button>
+                  <button type="button" class="reader-swatch-choice" data-bg="" aria-label="Background color 3"></button>
+                  <button type="button" class="reader-swatch-choice" data-bg="" aria-label="Background color 4"></button>
+                  <button type="button" class="reader-swatch-choice" data-bg="" aria-label="Background color 5"></button>
+                  <button type="button" class="reader-swatch-choice" data-bg="" aria-label="Background color 6"></button>
                 </div>
               </div>
             </div>
@@ -644,10 +692,12 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
               <div class="reader-control-bubble">
                 <span id="reader-fg-current" class="reader-current-swatch" style="background:#fdf6e2"></span>
                 <div class="reader-bubble-menu" aria-label="Text color">
-                  <button type="button" class="reader-swatch-choice reader-choice-active" data-fg="#fdf6e2" style="background:#fdf6e2" aria-label="Text color 1"></button>
-                  <button type="button" class="reader-swatch-choice" data-fg="#93a1a1" style="background:#93a1a1" aria-label="Text color 2"></button>
-                  <button type="button" class="reader-swatch-choice" data-fg="#eee8d5" style="background:#eee8d5" aria-label="Text color 3"></button>
-                  <button type="button" class="reader-swatch-choice" data-fg="#073642" style="background:#073642" aria-label="Text color 4"></button>
+                  <button type="button" class="reader-swatch-choice reader-choice-active" data-fg="" aria-label="Text color 1"></button>
+                  <button type="button" class="reader-swatch-choice" data-fg="" aria-label="Text color 2"></button>
+                  <button type="button" class="reader-swatch-choice" data-fg="" aria-label="Text color 3"></button>
+                  <button type="button" class="reader-swatch-choice" data-fg="" aria-label="Text color 4"></button>
+                  <button type="button" class="reader-swatch-choice" data-fg="" aria-label="Text color 5"></button>
+                  <button type="button" class="reader-swatch-choice" data-fg="" aria-label="Text color 6"></button>
                 </div>
               </div>
             </div>
@@ -701,9 +751,13 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 		      const sidebarResizer = document.getElementById('reader-sidebar-resizer');
 		      const sidebarToggle = document.getElementById('reader-sidebar-toggle');
 		      const pageTools = document.getElementById('reader-page-tools');
-	      const menuToggle = document.getElementById('reader-menu-toggle');
-	      const menuPanel = document.getElementById('reader-menu-panel');
-	      const toc = document.getElementById('reader-toc');
+		      const menuToggle = document.getElementById('reader-menu-toggle');
+		      const menuPanel = document.getElementById('reader-menu-panel');
+		      const chapterProgressFill = document.getElementById('reader-chapter-progress-fill');
+		      const bookProgressFill = document.getElementById('reader-book-progress-fill');
+		      const toc = document.getElementById('reader-toc');
+		      const prevChapterLink = document.querySelector('.reader-sidebar-actions .reader-action[aria-label="Previous"]');
+		      const nextChapterLink = document.querySelector('.reader-sidebar-actions .reader-action[aria-label="Next"]');
 		      const bgCurrent = document.getElementById('reader-bg-current');
 		      const fgCurrent = document.getElementById('reader-fg-current');
 		      const lhCurrent = document.getElementById('reader-lh-current');
@@ -718,6 +772,28 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 	      const fontMenu = document.querySelector('.reader-font-menu');
 	      const bubbles = Array.from(document.querySelectorAll('.reader-control-bubble'));
 	      const controlGroups = Array.from(document.querySelectorAll('.reader-control-group'));
+	      var themePalettes = {
+	        'solarized-dark':    { bg: ['#073541','#002b36','#00141a','#1e1e1e','#eee8d5','#fdf6e3'], fg: ['#fdf6e2','#eee8d5','#93a1a1','#839496','#586e75','#073642'] },
+	        'solarized-light':   { bg: ['#fdf6e3','#eee8d5','#ffffff','#f5f0e1','#002b36','#073642'], fg: ['#073642','#002b36','#586e75','#657b83','#839496','#fdf6e3'] },
+	        'catppuccin-mocha':  { bg: ['#1e1e2e','#181825','#11111b','#313244','#45475a','#cdd6f4'], fg: ['#cdd6f4','#bac2de','#a6adc8','#9399b2','#7f849c','#1e1e2e'] },
+	        'catppuccin-latte':  { bg: ['#eff1f5','#e6e9ef','#dce0e8','#ccd0da','#bcc0cc','#4c4f69'], fg: ['#4c4f69','#5c5f77','#6c6f85','#7c7f93','#8c8fa1','#eff1f5'] },
+	        'nord':              { bg: ['#2e3440','#3b4252','#434c5e','#4c566a','#d8dee9','#eceff4'], fg: ['#eceff4','#e5e9f0','#d8dee9','#81a1c1','#88c0d0','#2e3440'] },
+	        'everforest':   { bg: ['#2e383c','#272e33','#1e2326','#374145','#414b50','#d3c6aa'], fg: ['#d3c6aa','#9da9a0','#859289','#7a8478','#a7c080','#2e383c'] },
+	        'tokyonight':   { bg: ['#222436','#1e2030','#1b1d2b','#2f334d','#3b4261','#c8d3f5'], fg: ['#c8d3f5','#a9b1d6','#828bb8','#737aa2','#636da6','#222436'] },
+	        'kanagawa':          { bg: ['#1f1f28','#16161d','#2a2a37','#363646','#54546d','#dcd7ba'], fg: ['#dcd7ba','#c8c093','#938aa9','#727169','#9cabca','#1f1f28'] },
+	        'rose-pine':         { bg: ['#191724','#16141f','#1f1d2e','#26233a','#403d52','#e0def4'], fg: ['#e0def4','#ebbcba','#908caa','#6e6a86','#c4a7e7','#191724'] }
+	      };
+	      function applySwatchPalette(theme) {
+	        var pal = themePalettes[theme] || themePalettes['solarized-dark'];
+	        bgChoices.forEach(function(btn, i) { btn.dataset.bg = pal.bg[i]; btn.style.background = pal.bg[i]; });
+	        fgChoices.forEach(function(btn, i) { btn.dataset.fg = pal.fg[i]; btn.style.background = pal.fg[i]; });
+	        if (!localStorage.getItem('reader:bg')) bg = pal.bg[0];
+	        if (!localStorage.getItem('reader:fg')) fg = pal.fg[0];
+	        bgCurrent.style.background = bg;
+	        fgCurrent.style.background = fg;
+	        syncActiveChoices(bgChoices, 'bg', bg);
+	        syncActiveChoices(fgChoices, 'fg', fg);
+	      }
 	      let bg = localStorage.getItem('reader:bg') || '#073541';
 	      let fg = localStorage.getItem('reader:fg') || '#fdf6e2';
 	      let lh = localStorage.getItem('reader:lh') || '1.6';
@@ -794,18 +870,20 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 				});
 			}
 
-			function applyTheme() {
-				applyThemeToFrame(frame, bg, fg, lh, size, padX, fontFamily);
-				document.documentElement.style.setProperty('--reader-shell-fg', fg);
-				bgCurrent.style.backgroundColor = bg;
-				fgCurrent.style.backgroundColor = fg;
-				lhCurrent.textContent = lh;
+				function applyTheme() {
+					applyThemeToFrame(frame, bg, fg, lh, size, padX, fontFamily);
+					document.documentElement.style.setProperty('--reader-shell-fg', fg);
+					document.documentElement.style.setProperty('--reader-progress-book', fg);
+					document.documentElement.style.setProperty('--reader-progress-chapter', 'color-mix(in srgb, ' + fg + ' 60%, ' + bg + ')');
+					bgCurrent.style.backgroundColor = bg;
+					fgCurrent.style.backgroundColor = fg;
+					lhCurrent.textContent = lh;
 				sizeCurrent.textContent = size.replace('px', '');
 				padCurrent.textContent = padX.replace('px', '');
 				fontCurrent.textContent = fontFamily || 'Default';
 			}
 
-			function applyThemeToFrame(frame, activeBg, activeFg, activeLh, activeSize, activePadX, activeFont) {
+				function applyThemeToFrame(frame, activeBg, activeFg, activeLh, activeSize, activePadX, activeFont) {
 				const doc = frame.contentDocument;
 				if (!doc) return;
 				doc.documentElement.style.setProperty('--reader-bg', activeBg);
@@ -824,8 +902,100 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 					doc.body.style.paddingLeft = activePadX;
 					doc.body.style.paddingRight = activePadX;
 					doc.body.style.fontFamily = activeFont || '';
+					}
 				}
-			}
+
+				function isShortcutTargetBlocked(target) {
+					if (!target || target.nodeType !== 1) {
+						return false;
+					}
+					if (target.closest('#reader-page-tools')) {
+						return true;
+					}
+					if (target.closest('input, textarea, select, button, a, [contenteditable="true"]')) {
+						return true;
+					}
+					return false;
+				}
+
+				function scrollReaderBy(delta) {
+					const doc = frame.contentDocument;
+					if (!doc) {
+						return;
+					}
+					const win = doc.defaultView;
+					if (win && typeof win.scrollBy === 'function') {
+						win.scrollBy({ top: delta, behavior: 'smooth' });
+						return;
+					}
+					const scrollingEl = doc.scrollingElement || doc.documentElement || doc.body;
+					if (scrollingEl) {
+						scrollingEl.scrollTop += delta;
+					}
+				}
+
+				function goToChapter(link) {
+					if (link && link.href) {
+						window.location.href = link.href;
+					}
+				}
+
+				function toggleSidebar() {
+					if (sidebarToggle) {
+						sidebarToggle.click();
+					}
+				}
+
+				function handleReaderShortcut(event) {
+					if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+						return;
+					}
+					if (isShortcutTargetBlocked(event.target)) {
+						return;
+					}
+					switch (event.key) {
+						case 'ArrowDown':
+						case 'j':
+							event.preventDefault();
+							scrollReaderBy(96);
+							break;
+						case 'ArrowUp':
+						case 'k':
+							event.preventDefault();
+							scrollReaderBy(-96);
+							break;
+						case 'ArrowRight':
+						case 'l':
+							event.preventDefault();
+							goToChapter(nextChapterLink);
+							break;
+						case 'ArrowLeft':
+						case 'h':
+							event.preventDefault();
+							goToChapter(prevChapterLink);
+							break;
+						case 'Tab':
+							event.preventDefault();
+							toggleSidebar();
+							break;
+					}
+				}
+
+				function bindReaderShortcuts() {
+					window.addEventListener('keydown', handleReaderShortcut);
+				}
+
+				function bindFrameShortcuts() {
+					const doc = frame.contentDocument;
+					if (!doc) {
+						return;
+					}
+					const win = doc.defaultView;
+					if (win) {
+						win.addEventListener('keydown', handleReaderShortcut);
+					}
+					doc.addEventListener('keydown', handleReaderShortcut);
+				}
 
       function scheduleHide() {
         clearTimeout(openTimer);
@@ -930,13 +1100,48 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 				frameCloseBound = true;
 			}
 
-			function updateNextChapterVisibility() {
-				if (!nextChapter) {
-					return;
-				}
-				const doc = frame.contentDocument;
-				if (!doc) {
-					nextChapter.classList.remove('visible');
+					function updateReaderProgress() {
+						if (!chapterProgressFill || !bookProgressFill) {
+							return;
+						}
+						const chapterCount = {{.ChapterCount}};
+						const currentIndex = {{.CurrentIndex}};
+						if (chapterCount <= 0) {
+							chapterProgressFill.style.width = '0%';
+							bookProgressFill.style.width = '0%';
+							return;
+						}
+						const doc = frame.contentDocument;
+						if (!doc) {
+							chapterProgressFill.style.width = '0%';
+							bookProgressFill.style.width = String(((currentIndex + 1) / chapterCount) * 100) + '%';
+							return;
+						}
+					const win = doc.defaultView;
+					const docEl = doc.documentElement;
+					const body = doc.body;
+					const scrollTop = (win && (win.scrollY || win.pageYOffset)) || (docEl && docEl.scrollTop) || (body && body.scrollTop) || 0;
+					const clientHeight = (win && win.innerHeight) || (docEl && docEl.clientHeight) || (body && body.clientHeight) || 0;
+					const scrollHeight = Math.max(
+						(docEl && docEl.scrollHeight) || 0,
+						(body && body.scrollHeight) || 0,
+						(doc.scrollingElement && doc.scrollingElement.scrollHeight) || 0,
+						);
+						const scrollable = Math.max(scrollHeight - clientHeight, 0);
+						const chapterFraction = scrollable > 0 ? Math.min(Math.max(scrollTop / scrollable, 0), 1) : 1;
+						const chapterProgress = chapterFraction * 100;
+						const bookProgress = ((currentIndex + chapterFraction) / chapterCount) * 100;
+						chapterProgressFill.style.width = String(Math.min(Math.max(chapterProgress, 0), 100)) + '%';
+						bookProgressFill.style.width = String(Math.min(Math.max(bookProgress, 0), 100)) + '%';
+					}
+
+				function updateNextChapterVisibility() {
+					if (!nextChapter) {
+						return;
+					}
+					const doc = frame.contentDocument;
+					if (!doc) {
+						nextChapter.classList.remove('visible');
 					return;
 				}
 				const win = doc.defaultView;
@@ -971,16 +1176,22 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
 				if (!win || !docEl) {
 					return;
 				}
-				win.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
-				win.addEventListener('resize', updateNextChapterVisibility);
-				doc.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
-				docEl.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
-				if (body) {
-					body.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
+					win.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
+					win.addEventListener('scroll', updateReaderProgress, { passive: true });
+					win.addEventListener('resize', updateNextChapterVisibility);
+					win.addEventListener('resize', updateReaderProgress);
+					doc.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
+					doc.addEventListener('scroll', updateReaderProgress, { passive: true });
+					docEl.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
+					docEl.addEventListener('scroll', updateReaderProgress, { passive: true });
+					if (body) {
+						body.addEventListener('scroll', updateNextChapterVisibility, { passive: true });
+						body.addEventListener('scroll', updateReaderProgress, { passive: true });
+					}
+					frameScrollBound = true;
+					updateNextChapterVisibility();
+					updateReaderProgress();
 				}
-				frameScrollBound = true;
-				updateNextChapterVisibility();
-			}
 
 		function syncActiveChoices(choices, key, currentValue) {
 			choices.forEach(choice => {
@@ -1162,20 +1373,25 @@ var readerShellTmpl = template.Must(template.New("reader-shell").Parse(`<!DOCTYP
           localStorage.setItem(tocKey, String(toc.scrollTop));
         });
       }
+	      applySwatchPalette('{{.Theme}}' || 'solarized-dark');
 	      syncActiveChoices(bgChoices, 'bg', bg);
 	      syncActiveChoices(fgChoices, 'fg', fg);
-			frame.addEventListener('load', function () {
-				frameCloseBound = false;
-				frameScrollBound = false;
-				applyTheme();
+					frame.addEventListener('load', function () {
+						frameCloseBound = false;
+						frameScrollBound = false;
+						applyTheme();
+						bindFrameClose();
+						bindFrameScroll();
+						bindFrameShortcuts();
+						setTimeout(updateNextChapterVisibility, 150);
+						setTimeout(updateReaderProgress, 150);
+					});
+				initSidebarResize();
+				bindReaderShortcuts();
 				bindFrameClose();
 				bindFrameScroll();
-				setTimeout(updateNextChapterVisibility, 150);
-			});
-			initSidebarResize();
-			bindFrameClose();
-			bindFrameScroll();
-			applyTheme();
+				applyTheme();
+			updateReaderProgress();
 		document.querySelectorAll('.reader-toc .group-section').forEach(function (section) {
 			var hoverTimer = null;
 			section.querySelector('.group-header').addEventListener('click', function (e) {
@@ -1204,12 +1420,14 @@ type readerShellData struct {
 	Meta           string
 	CurrentChapter string
 	Progress       string
+	ChapterCount   int
 	Prev           string
 	Next           string
 	TOCHTML        template.HTML
 	EncodedPath    string
 	CurrentIndex   int
 	IframeSrc      template.URL
+	Theme          string
 }
 
 type chapterDoc struct {
@@ -1230,7 +1448,7 @@ type readerCache struct {
 	errors  map[string]error
 }
 
-func NewHandler(root string, lib model.Library, fonts []string) http.Handler {
+func NewHandler(root string, lib model.Library, fonts []string, theme string) http.Handler {
 	titleIndex := make(map[string]string, len(lib.Books))
 	authorIndex := make(map[string]string, len(lib.Books))
 	cache := &readerCache{
@@ -1313,14 +1531,14 @@ func NewHandler(root string, lib model.Library, fonts []string) http.Handler {
 		case "chapter":
 			serveChapterDocument(w, r, absEpub, epubRel, cache)
 		default:
-			serveReaderShell(w, r, absEpub, epubRel, titleIndex[epubRel], authorIndex[epubRel], cache)
+			serveReaderShell(w, r, absEpub, epubRel, titleIndex[epubRel], authorIndex[epubRel], cache, theme)
 		}
 	})
 
 	return mux
 }
 
-func serveReaderShell(w http.ResponseWriter, r *http.Request, absEpub, epubRel, title, meta string, cache *readerCache) {
+func serveReaderShell(w http.ResponseWriter, r *http.Request, absEpub, epubRel, title, meta string, cache *readerCache, theme string) {
 	book, err := cache.load(absEpub)
 	if err != nil {
 		http.NotFound(w, r)
@@ -1342,15 +1560,17 @@ func serveReaderShell(w http.ResponseWriter, r *http.Request, absEpub, epubRel, 
 		currentTitle = tocTitle
 	}
 
-	data := readerShellData{
-		Title:          title,
-		Meta:           meta,
-		CurrentChapter: currentTitle,
-		Progress:       strconv.Itoa(chapterIndex+1) + " / " + strconv.Itoa(len(book.Chapters)),
-		TOCHTML:        buildTOCHTML(book.TOC, book.Spine, epubRel, book.Spine[chapterIndex]),
-		EncodedPath:    encodeURLPath(epubRel),
+		data := readerShellData{
+			Title:          title,
+			Meta:           meta,
+			CurrentChapter: currentTitle,
+			Progress:       strconv.Itoa(chapterIndex+1) + " / " + strconv.Itoa(len(book.Chapters)),
+			ChapterCount:   len(book.Chapters),
+			TOCHTML:        buildTOCHTML(book.TOC, book.Spine, epubRel, book.Spine[chapterIndex]),
+			EncodedPath:    encodeURLPath(epubRel),
 		CurrentIndex:   chapterIndex,
 		IframeSrc:      template.URL(readerChapterDocURL(epubRel, chapterIndex, r.URL.Query().Get("frag"))),
+		Theme:          theme,
 	}
 	isContinuation := make(map[int]bool)
 	for _, contIndices := range spineContinuations(book.Spine, book.TOC) {

@@ -36,13 +36,13 @@ func main() {
 	}
 
 	appMenu := menu.NewMenu()
-	mb := appMenu.AddSubmenu("metabrowser")
-	mb.AddText("Quit metabrowser", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+	mb := appMenu.AddSubmenu("colophon")
+	mb.AddText("Quit colophon", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		runtime.Quit(app.ctx)
 	})
 
 	if err := wails.Run(&options.App{
-		Title:  "metabrowser",
+		Title:  "colophon",
 		Width:  1280,
 		Height: 860,
 		Menu:   appMenu,

@@ -1,5 +1,5 @@
 AGENTS.md
-metabrowser
+colophon
 frontend/node_modules/
 build/*
 !build/appicon.png

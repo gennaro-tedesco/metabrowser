@@ -14,7 +14,7 @@
 Build the executable and run it on localhost
 
 ```sh
-go build -o metabrowser . && ./metabrowser /path/to/libray
+go build -o colophon . && ./colophon /path/to/libray
 ```
 
 ![Image](https://github.com/user-attachments/assets/fdc17e53-23d2-499b-8dcb-8d7b5cbe220f)

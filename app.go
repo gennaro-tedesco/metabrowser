@@ -41,9 +41,9 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"metabrowser/model"
-	"metabrowser/scanner"
-	"metabrowser/server"
+	"colophon/model"
+	"colophon/scanner"
+	"colophon/server"
 )
 
 type App struct {
@@ -97,7 +97,7 @@ func (a *App) streamScan(dir string) {
 		a.mu.Lock()
 		a.root = dir
 		a.lib = lib
-		a.handler = server.NewHandler(dir, lib, fonts)
+		a.handler = server.NewHandler(dir, lib, fonts, a.cfg.Theme)
 		a.mu.Unlock()
 	}
 
@@ -138,7 +138,7 @@ func (a *App) streamScan(dir string) {
 	sort.Slice(a.lib.Books, func(i, j int) bool { return a.lib.Books[i].Title < a.lib.Books[j].Title })
 	a.lib = scanner.BuildLibrary(a.lib.Books)
 	a.root = dir
-	a.handler = server.NewHandler(dir, a.lib, fonts)
+	a.handler = server.NewHandler(dir, a.lib, fonts, a.cfg.Theme)
 	finalLib := a.lib
 	a.mu.Unlock()
 
@@ -163,7 +163,7 @@ func (a *App) scan(dir string) error {
 	a.mu.Lock()
 	a.root = dir
 	a.lib = lib
-	a.handler = server.NewHandler(dir, lib, listSystemFonts())
+	a.handler = server.NewHandler(dir, lib, listSystemFonts(), a.cfg.Theme)
 	a.mu.Unlock()
 	saveBookCache(dir, newCache)
 	return nil
@@ -185,7 +185,13 @@ func (a *App) SaveConfig(cfg Config) error {
 		}
 	}
 	a.mu.Lock()
+	if cfg.LibraryDir == "" {
+		cfg.LibraryDir = a.cfg.LibraryDir
+	}
 	a.cfg = cfg
+	if root != "" {
+		a.handler = server.NewHandler(root, a.lib, listSystemFonts(), cfg.Theme)
+	}
 	a.mu.Unlock()
 	return saveConfig(cfg)
 }

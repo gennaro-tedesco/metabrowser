@@ -38,13 +38,13 @@ jobs:
         run: |
           brew install create-dmg
           create-dmg \
-            --volname "metabrowser" \
+            --volname "colophon" \
             --window-size 600 400 \
-            --icon "metabrowser.app" 150 200 \
+            --icon "colophon.app" 150 200 \
             --app-drop-link 450 200 \
             --no-internet-enable \
-            "metabrowser-${{ matrix.arch }}.dmg" \
-            build/bin/metabrowser.app
+            "colophon-${{ matrix.arch }}.dmg" \
+            build/bin/colophon.app
 
       - uses: actions/upload-artifact@v4
         with:
@@ -63,4 +63,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" *.dmg --repo "$GITHUB_REPOSITORY" --title "metabrowser $TAG" --generate-notes
+        run: gh release create "$TAG" *.dmg --repo "$GITHUB_REPOSITORY" --title "colophon $TAG" --generate-notes

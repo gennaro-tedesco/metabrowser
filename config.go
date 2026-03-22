@@ -10,6 +10,7 @@ type Config struct {
 	LibraryDir   string `json:"libraryDir"`
 	UIFontFamily string `json:"uiFontFamily"`
 	UIFontSize   int    `json:"uiFontSize"`
+	Theme        string `json:"theme"`
 }
 
 func configPath() string {
@@ -18,7 +19,7 @@ func configPath() string {
 		home, _ := os.UserHomeDir()
 		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, "metabrowser", "config.json")
+	return filepath.Join(base, "colophon", "config.json")
 }
 
 func loadConfig() Config {

@@ -133,6 +133,7 @@ export namespace main {
 	    libraryDir: string;
 	    uiFontFamily: string;
 	    uiFontSize: number;
+	    theme: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -143,6 +144,7 @@ export namespace main {
 	        this.libraryDir = source["libraryDir"];
 	        this.uiFontFamily = source["uiFontFamily"];
 	        this.uiFontSize = source["uiFontSize"];
+	        this.theme = source["theme"];
 	    }
 	}
 

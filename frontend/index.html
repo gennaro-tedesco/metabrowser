@@ -4,13 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>metabrowser</title>
+  <title>colophon</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="themes/solarized-dark.css">
+  <link rel="stylesheet" href="themes/solarized-light.css">
+  <link rel="stylesheet" href="themes/catppuccin-mocha.css">
+  <link rel="stylesheet" href="themes/catppuccin-latte.css">
+  <link rel="stylesheet" href="themes/nord.css">
+  <link rel="stylesheet" href="themes/everforest.css">
+  <link rel="stylesheet" href="themes/tokyonight.css">
+  <link rel="stylesheet" href="themes/kanagawa.css">
+  <link rel="stylesheet" href="themes/rose-pine.css">
 </head>
 
 	<body>
@@ -20,6 +29,21 @@
 				<span class="app-menu-label">Directory</span>
 				<span id="app-dir-name">—</span>
 				<button type="button" id="app-dir-pick" class="app-dir-btn">Choose…</button>
+			</div>
+			<div class="app-menu-sep"></div>
+			<div class="app-menu-row">
+				<span class="app-menu-label">Theme</span>
+				<select id="app-theme">
+					<option value="solarized-dark">Solarized Dark</option>
+					<option value="solarized-light">Solarized Light</option>
+					<option value="catppuccin-mocha">Catppuccin Mocha</option>
+					<option value="catppuccin-latte">Catppuccin Latte</option>
+					<option value="nord">Nord</option>
+					<option value="everforest">Everforest</option>
+					<option value="tokyonight">Tokyo Night</option>
+					<option value="kanagawa">Kanagawa</option>
+					<option value="rose-pine">Rose Pine</option>
+				</select>
 			</div>
 			<div class="app-menu-sep"></div>
 			<div class="app-menu-row">
@@ -33,6 +57,11 @@
 				<span class="app-menu-label">Font size</span>
 				<input type="range" id="app-font-slider" min="14" max="28" step="1" value="20">
 				<span id="app-font-val">20px</span>
+			</div>
+			<div class="app-menu-sep"></div>
+			<div class="app-menu-row">
+				<span class="app-menu-label">Help</span>
+				<button type="button" id="app-help-open" class="app-dir-btn">Shortcuts</button>
 			</div>
 		</div>
 					<aside id="sidebar">
@@ -72,8 +101,8 @@
     </div>
   </div>
 
-  <div id="prefs-backdrop" class="hidden">
-    <div id="prefs-modal" role="dialog" aria-modal="true" aria-label="Preferences">
+	  <div id="prefs-backdrop" class="hidden">
+	    <div id="prefs-modal" role="dialog" aria-modal="true" aria-label="Preferences">
       <div id="prefs-header">
         <span id="prefs-title">Preferences</span>
         <button id="prefs-close" type="button" title="Close">✕</button>
@@ -103,10 +132,26 @@
       <div id="prefs-footer">
         <button id="prefs-save" type="button" class="prefs-btn prefs-btn-primary">Save</button>
       </div>
-    </div>
-  </div>
+	    </div>
+	  </div>
 
-  <script src="node_modules/chart.js/dist/chart.umd.min.js"></script>
+	  <div id="help-backdrop" class="hidden">
+	    <div id="help-modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+	      <div id="help-header">
+	        <span id="help-title">Keyboard Shortcuts</span>
+	        <button id="help-close" type="button" title="Close">✕</button>
+	      </div>
+	      <div id="help-body">
+	        <div class="help-row"><span class="help-keys">↓ / j</span><span class="help-desc">Scroll down</span></div>
+	        <div class="help-row"><span class="help-keys">↑ / k</span><span class="help-desc">Scroll up</span></div>
+	        <div class="help-row"><span class="help-keys">→ / l</span><span class="help-desc">Next chapter</span></div>
+	        <div class="help-row"><span class="help-keys">← / h</span><span class="help-desc">Previous chapter</span></div>
+	        <div class="help-row"><span class="help-keys">Tab</span><span class="help-desc">Toggle TOC panel</span></div>
+	      </div>
+	    </div>
+	  </div>
+
+	  <script src="node_modules/chart.js/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 

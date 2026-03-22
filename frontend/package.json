@@ -1,5 +1,5 @@
 {
-  "name": "metabrowser-frontend",
+  "name": "colophon-frontend",
   "private": true,
   "dependencies": {
     "chart.js": "^4.4.1"

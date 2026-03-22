@@ -182,14 +182,17 @@
 	initSidebarResize();
 
 	// ── Preferences ──
-	const prefsBackdrop = document.getElementById('prefs-backdrop');
-	const prefsClose = document.getElementById('prefs-close');
+		const prefsBackdrop = document.getElementById('prefs-backdrop');
+		const prefsClose = document.getElementById('prefs-close');
 	const prefsLibraryDir = document.getElementById('prefs-library-dir');
 	const prefsPickDir = document.getElementById('prefs-pick-dir');
 	const prefsFontFamily = document.getElementById('prefs-font-family');
 	const prefsFontSize = document.getElementById('prefs-font-size');
-	const prefsFontSizeVal = document.getElementById('prefs-font-size-val');
-	const prefsSave = document.getElementById('prefs-save');
+		const prefsFontSizeVal = document.getElementById('prefs-font-size-val');
+		const prefsSave = document.getElementById('prefs-save');
+		const helpBackdrop = document.getElementById('help-backdrop');
+		const helpClose = document.getElementById('help-close');
+		const appHelpOpen = document.getElementById('app-help-open');
 
 	function applyUIConfig(cfg) {
 		const root = document.documentElement;
@@ -204,6 +207,9 @@
 		if (cfg.uiFontFamily) {
 			root.style.setProperty('--font-sans', "'" + cfg.uiFontFamily + "', system-ui, sans-serif");
 			root.style.setProperty('--font-serif', "'" + cfg.uiFontFamily + "', sans-serif");
+		}
+		if (cfg.theme) {
+			root.setAttribute('data-theme', cfg.theme);
 		}
 	}
 
@@ -226,10 +232,12 @@
 		});
 	}
 
-	document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === ',') { e.preventDefault(); openPreferences(); } });
-	prefsClose.addEventListener('click', () => prefsBackdrop.classList.add('hidden'));
-	prefsBackdrop.addEventListener('click', e => { if (e.target === prefsBackdrop) prefsBackdrop.classList.add('hidden'); });
-	prefsFontSize.addEventListener('input', () => { prefsFontSizeVal.textContent = prefsFontSize.value + 'px'; });
+		document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === ',') { e.preventDefault(); openPreferences(); } });
+		prefsClose.addEventListener('click', () => prefsBackdrop.classList.add('hidden'));
+		prefsBackdrop.addEventListener('click', e => { if (e.target === prefsBackdrop) prefsBackdrop.classList.add('hidden'); });
+		helpClose.addEventListener('click', () => helpBackdrop.classList.add('hidden'));
+		helpBackdrop.addEventListener('click', e => { if (e.target === helpBackdrop) helpBackdrop.classList.add('hidden'); });
+		prefsFontSize.addEventListener('input', () => { prefsFontSizeVal.textContent = prefsFontSize.value + 'px'; });
 	prefsPickDir.addEventListener('click', () => {
 		window.go.main.App.PickAndScan().then(function(lib) {
 			prefsLibraryDir.value = lib.libraryDir || prefsLibraryDir.value;
@@ -273,6 +281,7 @@
 	const appFontFamily = document.getElementById('app-font-family');
 	const appFontSlider = document.getElementById('app-font-slider');
 	const appFontVal = document.getElementById('app-font-val');
+	const appTheme = document.getElementById('app-theme');
 
 	function showAppMenu() {
 		clearTimeout(appMenuHideTimer);
@@ -329,11 +338,25 @@
 		window.go.main.App.SaveConfig(cfg);
 	});
 
+		appTheme.addEventListener('change', function() {
+			const cfg = Object.assign({}, currentCfg, { theme: appTheme.value });
+			currentCfg = cfg;
+			applyUIConfig(cfg);
+			window.go.main.App.SaveConfig(cfg);
+		});
+
+		appHelpOpen.addEventListener('click', function() {
+			helpBackdrop.classList.remove('hidden');
+			appMenuToggle.classList.remove('open');
+			appMenuPanel.classList.remove('open');
+		});
+
 	function initAppMenu(cfg) {
 		appDirName.textContent = cfg.libraryDir || '—';
 		const size = cfg.uiFontSize || 20;
 		appFontSlider.value = size;
 		appFontVal.textContent = size + 'px';
+		appTheme.value = cfg.theme || 'solarized-dark';
 		window.go.main.App.ListFonts().then(function(fonts) {
 			while (appFontFamily.options.length > 1) appFontFamily.remove(1);
 			fonts.forEach(function(f) {
@@ -383,12 +406,16 @@
 	drilldownBackdrop.addEventListener('click', event => {
 		if (event.target === drilldownBackdrop) closeDrilldownModal();
 	});
-	document.addEventListener('keydown', event => {
-		if (event.key !== 'Escape') return;
-		if (drilldownBackdrop.classList.contains('open')) {
-			closeDrilldownModal();
-		}
-	});
+		document.addEventListener('keydown', event => {
+			if (event.key !== 'Escape') return;
+			if (drilldownBackdrop.classList.contains('open')) {
+				closeDrilldownModal();
+				return;
+			}
+			if (!helpBackdrop.classList.contains('hidden')) {
+				helpBackdrop.classList.add('hidden');
+			}
+		});
 
 	function createEmptyFilters() {
 		return {

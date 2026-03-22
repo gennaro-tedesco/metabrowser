@@ -1,4 +1,4 @@
-module metabrowser
+module colophon
 
 go 1.22.0
 

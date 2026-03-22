@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"metabrowser/model"
+	"colophon/model"
 )
 
 type ScanResult struct {

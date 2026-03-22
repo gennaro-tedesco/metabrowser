@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"metabrowser/model"
+	"colophon/model"
 )
 
 type cacheEntry struct {
@@ -24,7 +24,7 @@ func cacheDir() string {
 		home, _ := os.UserHomeDir()
 		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, "metabrowser", "cache")
+	return filepath.Join(base, "colophon", "cache")
 }
 
 func cachePath(root string) string {
