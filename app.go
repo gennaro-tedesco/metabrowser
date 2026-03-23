@@ -53,6 +53,7 @@ type App struct {
 	lib     model.Library
 	handler http.Handler
 	cfg     Config
+	fonts   []string
 }
 
 func NewApp(root string) *App {
@@ -63,6 +64,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.mu.Lock()
 	a.cfg = loadConfig()
+	a.fonts = listSystemFonts()
 	if a.root == "" {
 		a.root = a.cfg.LibraryDir
 	}
@@ -75,12 +77,29 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
+func (a *App) getFonts() []string {
+	a.mu.RLock()
+	fonts := a.fonts
+	a.mu.RUnlock()
+	if len(fonts) > 0 {
+		return fonts
+	}
+	fonts = listSystemFonts()
+	a.mu.Lock()
+	if len(a.fonts) == 0 {
+		a.fonts = fonts
+	}
+	fonts = a.fonts
+	a.mu.Unlock()
+	return fonts
+}
+
 // streamScan runs asynchronously on startup.
 // Phase 1: emit cached books instantly.
 // Phase 2: parse new/changed files and emit each.
 // Phase 3: sort, build handler, persist updated cache, emit scan:done.
 func (a *App) streamScan(dir string) {
-	fonts := listSystemFonts()
+	fonts := a.getFonts()
 	cache := loadBookCache(dir)
 	newCache := make(bookCache, len(cache))
 
@@ -148,6 +167,7 @@ func (a *App) streamScan(dir string) {
 
 // scan is the synchronous path used by PickAndScan and SaveConfig.
 func (a *App) scan(dir string) error {
+	fonts := a.getFonts()
 	results := make(chan scanner.ScanResult, 64)
 	if err := scanner.Stream(dir, results); err != nil {
 		return err
@@ -163,10 +183,20 @@ func (a *App) scan(dir string) error {
 	a.mu.Lock()
 	a.root = dir
 	a.lib = lib
-	a.handler = server.NewHandler(dir, lib, listSystemFonts(), a.cfg.Theme)
+	a.handler = server.NewHandler(dir, lib, fonts, a.cfg.Theme)
 	a.mu.Unlock()
 	saveBookCache(dir, newCache)
 	return nil
+}
+
+func (a *App) Rescan() error {
+	a.mu.RLock()
+	root := a.root
+	a.mu.RUnlock()
+	if root == "" {
+		return nil
+	}
+	return a.scan(root)
 }
 
 func (a *App) GetConfig() Config {
@@ -185,12 +215,13 @@ func (a *App) SaveConfig(cfg Config) error {
 		}
 	}
 	a.mu.Lock()
-	if cfg.LibraryDir == "" {
-		cfg.LibraryDir = a.cfg.LibraryDir
-	}
 	a.cfg = cfg
-	if root != "" {
-		a.handler = server.NewHandler(root, a.lib, listSystemFonts(), cfg.Theme)
+	if cfg.LibraryDir == "" {
+		a.root = ""
+		a.lib = model.Library{}
+		a.handler = nil
+	} else if a.root != "" {
+		a.handler = server.NewHandler(a.root, a.lib, a.fonts, cfg.Theme)
 	}
 	a.mu.Unlock()
 	return saveConfig(cfg)
@@ -228,7 +259,7 @@ func (a *App) PickAndScan() (model.Library, error) {
 }
 
 func (a *App) ListFonts() []string {
-	return listSystemFonts()
+	return a.getFonts()
 }
 
 func listSystemFonts() []string {
@@ -261,14 +292,18 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cfg := a.cfg
 		a.mu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(cfg)
+		if err := json.NewEncoder(w).Encode(cfg); err != nil {
+			return
+		}
 		return
 	case "/api/library":
 		a.mu.RLock()
 		lib := a.lib
 		a.mu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib)
+		if err := json.NewEncoder(w).Encode(lib); err != nil {
+			return
+		}
 		return
 	}
 	a.mu.RLock()

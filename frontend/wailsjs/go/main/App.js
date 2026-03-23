@@ -18,6 +18,10 @@ export function PickAndScan() {
   return window['go']['main']['App']['PickAndScan']();
 }
 
+export function Rescan() {
+  return window['go']['main']['App']['Rescan']();
+}
+
 export function SaveConfig(arg1) {
   return window['go']['main']['App']['SaveConfig'](arg1);
 }

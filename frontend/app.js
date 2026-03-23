@@ -20,6 +20,7 @@
 	const searchClear = document.getElementById('search-clear');
 	const activeFiltersEl = document.getElementById('active-filters');
 	const count = document.getElementById('count');
+	const scanStatus = document.getElementById('scan-status');
 	const viewToggle = document.getElementById('view-toggle');
 	const sidebarResizer = document.getElementById('sidebar-resizer');
 	const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -36,6 +37,16 @@
 	const SIDEBAR_MIN = 220;
 	const SIDEBAR_MAX = 520;
 	const SIDEBAR_COLLAPSED = 60;
+	let currentCfg = {};
+	let configReady = false;
+	let scanInProgress = false;
+	let scanVisible = false;
+	let scanHadVisibleContent = false;
+	let scanBookCount = 0;
+	let scanTimer = null;
+	let scanHideTimer = null;
+	let scanVisibleAt = 0;
+	let startupScanPending = false;
 
 	function clampSidebarWidth(value) {
 		return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, value));
@@ -103,52 +114,189 @@
 				if (!r.ok) throw new Error(r.status);
 				return r.json();
 			})
-			.then(lib => {
-				allBooks = lib.books || [];
-				if (allBooks.length === 0) {
-					showPickDirectory();
+				.then(lib => {
+					allBooks = lib.books || [];
+					if (allBooks.length === 0) {
+						if (configReady && currentCfg.libraryDir) {
+							if (startupScanPending) {
+								beginScanUI({ hasVisibleContent: false, count: 0 });
+								return;
+							}
+							showEmptyLibrary();
+							return;
+						}
+						showPickDirectory();
+						return;
+					}
+					endScanUI();
+					applyLibraryData(allBooks);
+				})
+			.catch(() => {
+				if (configReady && currentCfg.libraryDir) {
+					if (startupScanPending) {
+						beginScanUI({ hasVisibleContent: false, count: 0 });
+						return;
+					}
+					showEmptyLibrary();
 					return;
 				}
-				const data = buildGroupData(allBooks);
-				navGroups = data.groups;
-				navCounts = data.counts;
-				renderNav();
-				renderFiltered();
-			})
-			.catch(() => {
 				showPickDirectory();
 			});
 	}
 
 	function showPickDirectory() {
+		if (scanInProgress && !allBooks.length) {
+			nav.innerHTML = '';
+			if (scanVisible) {
+				renderScanPlaceholder();
+			}
+			return;
+		}
+		renderLibraryDirectoryState('', '', 'Choose library folder');
+	}
+
+	function showEmptyLibrary() {
+		renderLibraryDirectoryState(
+			'No books found',
+			'The selected folder is valid, but it does not contain any supported books.',
+			'Choose another folder'
+		);
+	}
+
+	function renderLibraryDirectoryState(title, detail, buttonLabel) {
 		nav.innerHTML = '';
-		list.innerHTML = '<div class="empty"><button id="pick-dir" type="button" style="' +
+		list.innerHTML = '<div class="empty">' +
+			(title ? '<div>' + title + '</div>' : '') +
+			(detail ? '<div style="margin-top:8px;color:var(--subtext0);font-size:var(--fs-sm)">' + detail + '</div>' : '') +
+			'<button id="pick-dir" type="button" style="' +
+			(title || detail ? 'margin-top:18px;' : '') +
 			'background:var(--surface0);border:1px solid var(--surface1);border-radius:6px;' +
 			'color:var(--blue);font-family:var(--font-serif);font-size:var(--fs-md);' +
 			'padding:10px 24px;cursor:pointer">' +
-			'Choose library folder</button></div>';
+			buttonLabel + '</button></div>';
 		document.getElementById('pick-dir').addEventListener('click', function() {
+			beginEmptyScanUI();
 			window.go.main.App.PickAndScan().then(function(lib) {
-				allBooks = lib.books || [];
-				if (allBooks.length === 0) return;
-				const data = buildGroupData(allBooks);
-				navGroups = data.groups;
-				navCounts = data.counts;
-				renderNav();
-				renderFiltered();
+				endScanUI();
+				applyLibraryData(lib.books || []);
+			}).catch(function() {
+				endScanUI();
 			});
 		});
 	}
 
 	let bookAddTimer = null;
 
+	function resetLibraryData() {
+		allBooks = [];
+		navGroups = { language: [], series: [], tags: [], author: [] };
+		navCounts = { language: {}, series: {}, tags: {}, author: {} };
+	}
+
+	function applyLibraryData(books) {
+		allBooks = books || [];
+		if (allBooks.length === 0) {
+			resetLibraryData();
+			if (currentCfg.libraryDir) {
+				showEmptyLibrary();
+				return;
+			}
+			showPickDirectory();
+			return;
+		}
+		const data = buildGroupData(allBooks);
+		navGroups = data.groups;
+		navCounts = data.counts;
+		renderNav();
+		renderFiltered();
+	}
+
+	function renderScanPlaceholder() {
+		list.innerHTML = '<div class="scan-loading"><div class="scan-loading-spinner" aria-hidden="true"></div><div class="scan-loading-title">Scanning library…</div><div class="scan-loading-meta">' + (scanBookCount > 0 ? scanBookCount + ' books indexed' : 'This may take a moment') + '</div></div>';
+	}
+
+	function updateScanUI() {
+		const showBadge = scanInProgress && scanVisible && (scanHadVisibleContent || allBooks.length > 0);
+		if (scanStatus) {
+			scanStatus.classList.toggle('hidden', !showBadge);
+			scanStatus.textContent = showBadge ? (scanBookCount > 0 ? 'Refreshing library… ' + scanBookCount : 'Refreshing library…') : '';
+		}
+		if (scanInProgress && scanVisible && !scanHadVisibleContent && allBooks.length === 0 && currentView === 'library') {
+			renderScanPlaceholder();
+		}
+	}
+
+	function beginScanUI(options) {
+		clearTimeout(scanTimer);
+		clearTimeout(scanHideTimer);
+		scanHideTimer = null;
+		scanInProgress = true;
+		scanVisible = false;
+		scanVisibleAt = 0;
+		scanHadVisibleContent = Boolean(options && options.hasVisibleContent);
+		scanBookCount = options && typeof options.count === 'number' ? options.count : allBooks.length;
+		scanTimer = setTimeout(function() {
+			scanVisible = true;
+			scanVisibleAt = Date.now();
+			updateScanUI();
+		}, 400);
+		updateScanUI();
+	}
+
+	function beginCurrentScanUI() {
+		beginScanUI({ hasVisibleContent: allBooks.length > 0, count: allBooks.length });
+	}
+
+	function beginEmptyScanUI() {
+		beginScanUI({ hasVisibleContent: false, count: 0 });
+	}
+
+	function bumpScanUI() {
+		if (!scanInProgress) {
+			beginCurrentScanUI();
+			return;
+		}
+		scanBookCount = allBooks.length;
+		updateScanUI();
+	}
+
+	function endScanUI() {
+		function finalizeScanUI() {
+			scanInProgress = false;
+			scanVisible = false;
+			scanHadVisibleContent = false;
+			scanBookCount = 0;
+			scanVisibleAt = 0;
+			scanHideTimer = null;
+			updateScanUI();
+		}
+
+		clearTimeout(scanTimer);
+		scanTimer = null;
+		clearTimeout(scanHideTimer);
+		if (scanVisible && scanVisibleAt > 0) {
+			const remaining = 500 - (Date.now() - scanVisibleAt);
+			if (remaining > 0) {
+				scanHideTimer = setTimeout(finalizeScanUI, remaining);
+				return;
+			}
+		}
+		finalizeScanUI();
+	}
+
 	if (window.runtime && typeof window.runtime.EventsOn === 'function') {
 		window.runtime.EventsOn('book:add', function(book) {
+			const hadBooks = allBooks.length > 0;
 			const idx = allBooks.findIndex(function(b) { return b.path === book.path; });
 			if (idx >= 0) {
 				allBooks[idx] = book;
 			} else {
 				allBooks.push(book);
+			}
+			if (!scanInProgress) {
+				beginScanUI({ hasVisibleContent: hadBooks, count: allBooks.length });
+			} else {
+				bumpScanUI();
 			}
 			clearTimeout(bookAddTimer);
 			bookAddTimer = setTimeout(function() {
@@ -163,18 +311,9 @@
 		window.runtime.EventsOn('scan:done', function(lib) {
 			clearTimeout(bookAddTimer);
 			bookAddTimer = null;
-			allBooks = (lib && lib.books) ? lib.books : [];
-			if (allBooks.length > 0) {
-				const data = buildGroupData(allBooks);
-				navGroups = data.groups;
-				navCounts = data.counts;
-				renderNav();
-				renderFiltered();
-			} else {
-				navGroups = { language: [], series: [], tags: [], author: [] };
-				navCounts = { language: {}, series: {}, tags: {}, author: {} };
-				showPickDirectory();
-			}
+			startupScanPending = false;
+			endScanUI();
+			applyLibraryData((lib && lib.books) ? lib.books : []);
 		});
 	}
 
@@ -192,7 +331,7 @@
 		const prefsSave = document.getElementById('prefs-save');
 		const helpBackdrop = document.getElementById('help-backdrop');
 		const helpClose = document.getElementById('help-close');
-		const appHelpOpen = document.getElementById('app-help-open');
+		const appHelpRow = document.getElementById('app-help-row');
 
 	function applyUIConfig(cfg) {
 		const root = document.documentElement;
@@ -238,33 +377,45 @@
 		helpClose.addEventListener('click', () => helpBackdrop.classList.add('hidden'));
 		helpBackdrop.addEventListener('click', e => { if (e.target === helpBackdrop) helpBackdrop.classList.add('hidden'); });
 		prefsFontSize.addEventListener('input', () => { prefsFontSizeVal.textContent = prefsFontSize.value + 'px'; });
-	prefsPickDir.addEventListener('click', () => {
-		window.go.main.App.PickAndScan().then(function(lib) {
-			prefsLibraryDir.value = lib.libraryDir || prefsLibraryDir.value;
-			window.go.main.App.GetConfig().then(cfg => { prefsLibraryDir.value = cfg.libraryDir || ''; });
-			if (lib.books && lib.books.length > 0) {
-				allBooks = lib.books;
-				const data = buildGroupData(allBooks);
-				navGroups = data.groups;
-				navCounts = data.counts;
-				renderNav();
-				renderFiltered();
-			}
+		prefsPickDir.addEventListener('click', () => {
+			beginCurrentScanUI();
+			window.go.main.App.PickAndScan().then(function(lib) {
+				endScanUI();
+				prefsLibraryDir.value = lib.libraryDir || prefsLibraryDir.value;
+				window.go.main.App.GetConfig().then(cfg => { prefsLibraryDir.value = cfg.libraryDir || ''; });
+				applyLibraryData(lib.books || []);
+			}).catch(function() {
+				endScanUI();
+			});
 		});
-	});
-	let currentCfg = {};
 
-	prefsSave.addEventListener('click', () => {
+		prefsSave.addEventListener('click', () => {
 		const cfg = Object.assign({}, currentCfg, {
 			libraryDir:   prefsLibraryDir.value,
 			uiFontFamily: prefsFontFamily.value,
 			uiFontSize:   parseInt(prefsFontSize.value, 10),
 		});
+		const shouldScan = Boolean(cfg.libraryDir && cfg.libraryDir !== currentCfg.libraryDir);
+		if (shouldScan) {
+			beginCurrentScanUI();
+		}
 		window.go.main.App.SaveConfig(cfg).then(function() {
+			if (shouldScan) {
+				endScanUI();
+			}
 			currentCfg = cfg;
 			applyUIConfig(cfg);
 			prefsBackdrop.classList.add('hidden');
-			if (cfg.libraryDir) loadLibrary();
+			if (cfg.libraryDir) {
+				loadLibrary();
+				return;
+			}
+			endScanUI();
+			applyLibraryData([]);
+		}).catch(function() {
+			if (shouldScan) {
+				endScanUI();
+			}
 		});
 	});
 
@@ -303,19 +454,16 @@
 	appMenuPanel.addEventListener('mouseleave', scheduleHideAppMenu);
 
 	appDirPick.addEventListener('click', function() {
+		beginCurrentScanUI();
 		window.go.main.App.PickAndScan().then(function(lib) {
+			endScanUI();
 			window.go.main.App.GetConfig().then(function(cfg) {
 				currentCfg = cfg;
 				appDirName.textContent = cfg.libraryDir || '—';
-				if (lib.books && lib.books.length > 0) {
-					allBooks = lib.books;
-					const data = buildGroupData(allBooks);
-					navGroups = data.groups;
-					navCounts = data.counts;
-					renderNav();
-					renderFiltered();
-				}
+				applyLibraryData(lib.books || []);
 			});
+		}).catch(function() {
+			endScanUI();
 		});
 	});
 
@@ -345,7 +493,21 @@
 			window.go.main.App.SaveConfig(cfg);
 		});
 
-		appHelpOpen.addEventListener('click', function() {
+		document.getElementById('app-rescan-btn').addEventListener('click', function() {
+			appMenuToggle.classList.remove('open');
+			appMenuPanel.classList.remove('open');
+			beginCurrentScanUI();
+			window.go.main.App.Rescan().then(function() {
+				return window.go.main.App.GetLibrary();
+			}).then(function(lib) {
+				endScanUI();
+				applyLibraryData((lib && lib.books) ? lib.books : []);
+			}).catch(function() {
+				endScanUI();
+			});
+		});
+
+		appHelpRow.addEventListener('click', function() {
 			helpBackdrop.classList.remove('hidden');
 			appMenuToggle.classList.remove('open');
 			appMenuPanel.classList.remove('open');
@@ -370,9 +532,14 @@
 	}
 
 	window.go.main.App.GetConfig().then(function(cfg) {
+		configReady = true;
 		currentCfg = cfg;
 		applyUIConfig(cfg);
 		initAppMenu(cfg);
+		startupScanPending = Boolean(cfg.libraryDir && allBooks.length === 0);
+		if (startupScanPending) {
+			beginEmptyScanUI();
+		}
 	});
 
 	(function initContinueReading() {
@@ -410,6 +577,10 @@
 			if (event.key !== 'Escape') return;
 			if (drilldownBackdrop.classList.contains('open')) {
 				closeDrilldownModal();
+				return;
+			}
+			if (!prefsBackdrop.classList.contains('hidden')) {
+				prefsBackdrop.classList.add('hidden');
 				return;
 			}
 			if (!helpBackdrop.classList.contains('hidden')) {
@@ -503,6 +674,8 @@
 	function toggleView() {
 		if (currentView === 'library') {
 			currentView = 'stats';
+			viewToggle.setAttribute('aria-label', 'Library');
+			viewToggle.dataset.tooltip = 'library';
 			viewToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>';
 			list.classList.add('hidden');
 			stats.classList.remove('hidden');
@@ -511,6 +684,8 @@
 		}
 
 		currentView = 'library';
+		viewToggle.setAttribute('aria-label', 'Stats');
+		viewToggle.dataset.tooltip = 'stats';
 		viewToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z"/><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/></svg>';
 		closeDrilldownModal();
 		destroyCharts(statsCharts);
