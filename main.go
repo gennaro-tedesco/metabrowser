@@ -18,6 +18,8 @@ import (
 //go:embed all:frontend
 var assets embed.FS
 
+var version = "dev"
+
 func main() {
 	var root string
 	if len(os.Args) >= 2 {

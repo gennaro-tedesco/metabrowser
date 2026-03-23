@@ -32,7 +32,9 @@ jobs:
         run: npm install --prefix frontend
 
       - name: Build
-        run: wails build -platform darwin/${{ matrix.arch }}
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: wails build -platform darwin/${{ matrix.arch }} -ldflags "-X main.version=${VERSION}"
 
       - name: Create DMG
         run: |

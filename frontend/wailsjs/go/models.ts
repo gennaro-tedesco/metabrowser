@@ -134,6 +134,7 @@ export namespace main {
 	    uiFontFamily: string;
 	    uiFontSize: number;
 	    theme: string;
+	    version?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -145,6 +146,7 @@ export namespace main {
 	        this.uiFontFamily = source["uiFontFamily"];
 	        this.uiFontSize = source["uiFontSize"];
 	        this.theme = source["theme"];
+	        this.version = source["version"];
 	    }
 	}
 

@@ -64,6 +64,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.mu.Lock()
 	a.cfg = loadConfig()
+	a.cfg.Version = version
 	a.fonts = listSystemFonts()
 	if a.root == "" {
 		a.root = a.cfg.LibraryDir
@@ -212,6 +213,7 @@ func (a *App) SaveConfig(cfg Config) error {
 	a.mu.RLock()
 	root := a.root
 	a.mu.RUnlock()
+	cfg.Version = ""
 	if cfg.LibraryDir != "" && cfg.LibraryDir != root {
 		if err := a.scan(cfg.LibraryDir); err != nil {
 			return err

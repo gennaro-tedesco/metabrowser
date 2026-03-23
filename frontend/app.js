@@ -331,6 +331,7 @@
 		const prefsSave = document.getElementById('prefs-save');
 		const helpBackdrop = document.getElementById('help-backdrop');
 		const helpClose = document.getElementById('help-close');
+		const appVersionValue = document.getElementById('app-version-value');
 		const appHelpRow = document.getElementById('app-help-row');
 
 	function applyUIConfig(cfg) {
@@ -515,6 +516,9 @@
 
 	function initAppMenu(cfg) {
 		appDirName.textContent = cfg.libraryDir || '—';
+		if (appVersionValue) {
+			appVersionValue.textContent = cfg.version || 'dev';
+		}
 		const size = cfg.uiFontSize || 20;
 		appFontSlider.value = size;
 		appFontVal.textContent = size + 'px';

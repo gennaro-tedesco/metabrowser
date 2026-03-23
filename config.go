@@ -11,6 +11,7 @@ type Config struct {
 	UIFontFamily string `json:"uiFontFamily"`
 	UIFontSize   int    `json:"uiFontSize"`
 	Theme        string `json:"theme"`
+	Version      string `json:"version,omitempty"`
 }
 
 func configPath() string {
