@@ -1030,9 +1030,9 @@ input[type="range"].prefs-input {
   flex-direction: column;
   gap: 4px;
   padding: 8px 0;
-  background: color-mix(in srgb, var(--mantle) 96%, transparent);
+  background: var(--mantle);
   backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--surface1) 55%, transparent);
+  border: 1px solid var(--surface1);
   border-radius: 8px;
   min-width: 260px;
   opacity: 0;
@@ -1074,7 +1074,7 @@ input[type="range"].prefs-input {
 }
 
 .app-menu-row:hover {
-  background: color-mix(in srgb, var(--teal) 10%, var(--mantle));
+  background: var(--base);
   color: var(--text);
 }
 
@@ -1137,9 +1137,9 @@ input[type="range"].prefs-input {
   position: absolute;
   left: calc(100% - 4px);
   top: -8px;
-  background: color-mix(in srgb, var(--mantle) 96%, transparent);
+  background: var(--mantle);
   backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--surface1) 55%, transparent);
+  border: 1px solid var(--surface1);
   border-radius: 8px;
   min-width: 220px;
   padding: 8px 0;
@@ -1175,6 +1175,67 @@ input[type="range"].prefs-input {
   font-size: var(--fs-xs);
   padding: 2px 6px;
   cursor: pointer;
+}
+
+#app-font-family {
+  width: 100%;
+  text-align: left;
+}
+
+#app-theme {
+  width: 100%;
+  text-align: left;
+}
+
+.app-font-family-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-font-family-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  width: 180px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--mantle);
+  border: 1px solid var(--surface1);
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 210;
+}
+
+.app-font-family-wrap.open .app-font-family-menu {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-font-family-choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 3px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.app-font-family-choice:hover {
+  background: var(--surface1);
+}
+
+.app-font-family-choice.is-active {
+  color: var(--blue);
 }
 
 #app-font-slider {

@@ -47,23 +47,17 @@
 				<div class="app-submenu" id="app-appearance-submenu">
 					<div class="app-menu-row">
 						<span class="app-menu-label">Theme</span>
-						<select id="app-theme">
-							<option value="solarized-dark">Solarized Dark</option>
-							<option value="solarized-light">Solarized Light</option>
-							<option value="catppuccin-mocha">Catppuccin Mocha</option>
-							<option value="catppuccin-latte">Catppuccin Latte</option>
-							<option value="nord">Nord</option>
-							<option value="everforest">Everforest</option>
-							<option value="tokyonight">Tokyo Night</option>
-							<option value="kanagawa">Kanagawa</option>
-							<option value="rose-pine">Rose Pine</option>
-						</select>
+						<div id="app-theme-wrap" class="app-font-family-wrap">
+							<button id="app-theme" type="button" aria-haspopup="listbox" aria-expanded="false">Solarized Dark</button>
+							<div id="app-theme-menu" class="app-font-family-menu" role="listbox" aria-label="Theme"></div>
+						</div>
 					</div>
 					<div class="app-menu-row">
 						<span class="app-menu-label">UI font</span>
-						<select id="app-font-family">
-							<option value="">System default</option>
-						</select>
+						<div id="app-font-family-wrap" class="app-font-family-wrap">
+							<button id="app-font-family" type="button" aria-haspopup="listbox" aria-expanded="false">System default</button>
+							<div id="app-font-family-menu" class="app-font-family-menu" role="listbox" aria-label="UI font"></div>
+						</div>
 					</div>
 					<div class="app-menu-row">
 						<span class="app-menu-label">Font size</span>

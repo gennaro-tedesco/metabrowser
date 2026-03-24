@@ -36,11 +36,14 @@
     var pageTools = document.getElementById('reader-page-tools');
     var menuToggle = document.getElementById('reader-menu-toggle');
     var menuPanel = document.getElementById('reader-menu-panel');
+    var searchTools = document.getElementById('reader-search-tools');
+    var searchPanel = document.getElementById('reader-search-panel');
     var chapterProgressFill = document.getElementById('reader-chapter-progress-fill');
     var bookProgressFill = document.getElementById('reader-book-progress-fill');
     var toc = document.getElementById('reader-toc');
     var searchForm = document.getElementById('reader-search');
     var searchInput = document.getElementById('reader-search-input');
+    var searchReset = document.getElementById('reader-search-reset');
     var searchCount = document.getElementById('reader-search-count');
     var searchPrev = document.getElementById('reader-search-prev');
     var searchNext = document.getElementById('reader-search-next');
@@ -87,7 +90,7 @@
     var activeBookSearchIndex = -1;
     var activeSearchIndex = -1;
     var hideTimer = null;
-    var openTimer = null;
+    var searchOpenTimer = null;
     var frameCloseBound = false;
     var frameScrollBound = false;
     var frameSetupDoc = null;
@@ -227,6 +230,7 @@
     function isShortcutTargetBlocked(target) {
       if (!target || target.nodeType !== 1) return false;
       if (target.closest('#reader-page-tools')) return true;
+      if (target.closest('#reader-search-tools')) return true;
       if (target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return true;
       return false;
     }
@@ -312,10 +316,8 @@
     function handleReaderShortcut(event) {
       if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'f') {
         event.preventDefault();
-        if (searchInput) {
-          searchInput.focus();
-          searchInput.select();
-        }
+        openSearch(true);
+        if (searchInput) searchInput.select();
         return;
       }
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
@@ -411,7 +413,7 @@
       }
       if (searchPrev) searchPrev.disabled = !hasMatches;
       if (searchNext) searchNext.disabled = !hasMatches;
-      if (searchClear) searchClear.disabled = !hasQuery;
+      if (searchReset) searchReset.disabled = !hasQuery;
     }
 
     function updateSearchScopeUI() {
@@ -454,6 +456,7 @@
         searchScope = parsed.scope === 'book' ? 'book' : 'chapter';
         activeBookSearchIndex = typeof parsed.activeBookSearchIndex === 'number' ? parsed.activeBookSearchIndex : -1;
         if (searchInput) searchInput.value = searchQuery;
+        if (searchQuery) openSearch(false);
       } catch (err) {}
     }
 
@@ -623,7 +626,7 @@
       updateSearchUI();
     }
 
-    function runBookSearch(query) {
+    function runBookSearch(query, noNavigate) {
       searchQuery = query.trim();
       clearSearchHighlights();
       bookSearchMatches = [];
@@ -649,6 +652,11 @@
         if (activeBookSearchIndex < 0 || activeBookSearchIndex >= bookSearchMatches.length) {
           activeBookSearchIndex = 0;
         }
+        if (noNavigate) {
+          persistSearchState();
+          runSearch(searchQuery);
+          return;
+        }
         setActiveBookSearchMatch(activeBookSearchIndex);
       }).catch(function () {
         bookSearchMatches = [];
@@ -659,18 +667,16 @@
     }
 
     function scheduleHide() {
-      clearTimeout(openTimer);
-      openTimer = null;
       clearTimeout(hideTimer);
       hideTimer = setTimeout(function () {
         closeMenu();
-      }, 3000);
+      }, 300);
     }
 
     function openMenu() {
       menuPanel.classList.add('open');
       pageTools.classList.add('open');
-      menuToggle.classList.remove('rotating');
+      menuToggle.classList.add('open');
       scheduleHide();
     }
 
@@ -678,8 +684,7 @@
       menuPanel.classList.remove('open');
       pageTools.classList.remove('open');
       clearTimeout(hideTimer);
-      clearTimeout(openTimer);
-      openTimer = null;
+      menuToggle.classList.remove('open');
       bubbles.forEach(function (bubble) {
         bubble.classList.remove('open');
       });
@@ -687,12 +692,37 @@
 
     function queueOpenMenu() {
       clearTimeout(hideTimer);
-      if (menuPanel.classList.contains('open') || openTimer) return;
-      menuToggle.classList.add('rotating');
-      openTimer = setTimeout(function () {
-        openTimer = null;
-        openMenu();
-      }, 200);
+      if (menuPanel.classList.contains('open')) return;
+      openMenu();
+    }
+
+    function openSearch(shouldFocus) {
+      if (!searchPanel || !searchTools) return;
+      var wasOpen = searchPanel.classList.contains('open');
+      searchPanel.classList.add('open');
+      searchTools.classList.add('open');
+      if (shouldFocus && searchInput) searchInput.focus();
+      if (!wasOpen && searchQuery && !searchMatches.length) {
+        if (searchScope === 'book') {
+          runBookSearch(searchQuery, true);
+        } else {
+          runSearch(searchQuery);
+        }
+      }
+    }
+
+    function closeSearch() {
+      if (!searchPanel || !searchTools) return;
+      if (!searchPanel.classList.contains('open')) return;
+      searchPanel.classList.remove('open');
+      searchTools.classList.remove('open');
+      clearSearchHighlights();
+    }
+
+    function queueOpenSearch() {
+      if (searchPanel.classList.contains('open')) return;
+      clearTimeout(searchOpenTimer);
+      searchOpenTimer = setTimeout(function () { openSearch(false); }, 150);
     }
 
     function openBubble(targetBubble) {
@@ -752,7 +782,7 @@
       if (!doc) return;
       doc.addEventListener('mousedown', function () {
         closeMenu();
-        menuToggle.classList.remove('rotating');
+        closeSearch();
       });
       frameCloseBound = true;
     }
@@ -970,19 +1000,11 @@
       event.stopPropagation();
     });
     pageTools.addEventListener('mouseenter', function () {
-      clearTimeout(openTimer);
-      openTimer = null;
       clearTimeout(hideTimer);
       if (!menuPanel.classList.contains('open')) queueOpenMenu();
     });
     pageTools.addEventListener('mouseleave', function () {
-      if (menuPanel.classList.contains('open')) {
-        scheduleHide();
-        return;
-      }
-      clearTimeout(openTimer);
-      openTimer = null;
-      menuToggle.classList.remove('rotating');
+      if (menuPanel.classList.contains('open')) scheduleHide();
     });
     menuPanel.addEventListener('click', scheduleHide);
     menuPanel.addEventListener('focusin', function () {
@@ -994,7 +1016,27 @@
     document.addEventListener('mousedown', function (event) {
       if (!pageTools.contains(event.target)) {
         closeMenu();
-        menuToggle.classList.remove('rotating');
+      }
+    });
+    if (searchTools) {
+      searchTools.addEventListener('mousedown', function (event) {
+        event.stopPropagation();
+      });
+      searchTools.addEventListener('mouseenter', function () {
+        if (!searchPanel.classList.contains('open')) queueOpenSearch();
+      });
+      searchTools.addEventListener('mouseleave', function () {
+        clearTimeout(searchOpenTimer);
+      });
+    }
+    if (searchPanel) {
+      searchPanel.addEventListener('mousedown', function (event) {
+        event.stopPropagation();
+      });
+    }
+    document.addEventListener('mousedown', function (event) {
+      if (searchTools && !searchTools.contains(event.target)) {
+        closeSearch();
       }
     });
 
@@ -1030,9 +1072,10 @@
     }
     if (searchInput) {
       searchInput.addEventListener('input', function () {
+        openSearch(false);
         if (searchScope === 'book') {
           activeBookSearchIndex = 0;
-          runBookSearch(searchInput.value);
+          runBookSearch(searchInput.value, true);
           return;
         }
         runSearch(searchInput.value);
@@ -1065,6 +1108,7 @@
             return;
           }
           runSearch('');
+          closeSearch();
         }
       });
     }
@@ -1092,6 +1136,7 @@
     }
     if (searchPrev) {
       searchPrev.addEventListener('click', function () {
+        openSearch(false);
         if (searchScope === 'book') {
           setActiveBookSearchMatch(activeBookSearchIndex - 1);
           return;
@@ -1101,6 +1146,7 @@
     }
     if (searchNext) {
       searchNext.addEventListener('click', function () {
+        openSearch(false);
         if (searchScope === 'book') {
           setActiveBookSearchMatch(activeBookSearchIndex + 1);
           return;
@@ -1108,8 +1154,8 @@
         setActiveSearchMatch(activeSearchIndex + 1);
       });
     }
-    if (searchClear) {
-      searchClear.addEventListener('click', function () {
+    if (searchReset) {
+      searchReset.addEventListener('click', function () {
         if (searchInput) searchInput.value = '';
         if (searchScope === 'book') {
           bookSearchMatches = [];
@@ -1119,6 +1165,11 @@
           runSearch('');
         }
         if (searchInput) searchInput.focus();
+      });
+    }
+    if (searchClear) {
+      searchClear.addEventListener('click', function () {
+        closeSearch();
       });
     }
     updateSearchUI();

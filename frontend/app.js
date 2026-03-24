@@ -430,10 +430,14 @@
 	const appMenuPanel = document.getElementById('app-menu-panel');
 	const appDirName = document.getElementById('app-dir-name');
 	const appDirPick = document.getElementById('app-dir-pick');
+	const appTheme = document.getElementById('app-theme');
+	const appThemeWrap = document.getElementById('app-theme-wrap');
+	const appThemeMenu = document.getElementById('app-theme-menu');
 	const appFontFamily = document.getElementById('app-font-family');
+	const appFontFamilyWrap = document.getElementById('app-font-family-wrap');
+	const appFontFamilyMenu = document.getElementById('app-font-family-menu');
 	const appFontSlider = document.getElementById('app-font-slider');
 	const appFontVal = document.getElementById('app-font-val');
-	const appTheme = document.getElementById('app-theme');
 
 	function showAppMenu() {
 		clearTimeout(appMenuHideTimer);
@@ -453,6 +457,125 @@
 	appMenuToggle.addEventListener('mouseleave', scheduleHideAppMenu);
 	appMenuPanel.addEventListener('mouseenter', function() { clearTimeout(appMenuHideTimer); });
 	appMenuPanel.addEventListener('mouseleave', scheduleHideAppMenu);
+
+	function updateAppFontFamilyButton(value) {
+		appFontFamily.textContent = value || 'System default';
+		appFontFamily.dataset.value = value || '';
+	}
+
+	var APP_THEMES = [
+		{ value: 'solarized-dark', label: 'Solarized Dark' },
+		{ value: 'solarized-light', label: 'Solarized Light' },
+		{ value: 'catppuccin-mocha', label: 'Catppuccin Mocha' },
+		{ value: 'catppuccin-latte', label: 'Catppuccin Latte' },
+		{ value: 'nord', label: 'Nord' },
+		{ value: 'everforest', label: 'Everforest' },
+		{ value: 'tokyonight', label: 'Tokyo Night' },
+		{ value: 'kanagawa', label: 'Kanagawa' },
+		{ value: 'rose-pine', label: 'Rose Pine' }
+	];
+
+	function updateAppThemeButton(value) {
+		var item = APP_THEMES.find(function(t) { return t.value === (value || 'solarized-dark'); });
+		appTheme.textContent = item ? item.label : 'Solarized Dark';
+		appTheme.dataset.value = value || 'solarized-dark';
+	}
+
+	function updateAppFontFamilyChoices(value) {
+		Array.from(appFontFamilyMenu.querySelectorAll('.app-font-family-choice')).forEach(function(choice) {
+			const active = choice.dataset.value === (value || '');
+			choice.classList.toggle('is-active', active);
+			choice.setAttribute('aria-selected', active ? 'true' : 'false');
+		});
+	}
+
+	function updateAppThemeChoices(value) {
+		Array.from(appThemeMenu.querySelectorAll('.app-font-family-choice')).forEach(function(choice) {
+			const active = choice.dataset.value === (value || 'solarized-dark');
+			choice.classList.toggle('is-active', active);
+			choice.setAttribute('aria-selected', active ? 'true' : 'false');
+		});
+	}
+
+	function closeAppFontFamilyMenu() {
+		appFontFamilyWrap.classList.remove('open');
+		appFontFamily.setAttribute('aria-expanded', 'false');
+	}
+
+	function closeAppThemeMenu() {
+		appThemeWrap.classList.remove('open');
+		appTheme.setAttribute('aria-expanded', 'false');
+	}
+
+	function openAppFontFamilyMenu() {
+		appFontFamilyWrap.classList.add('open');
+		appFontFamily.setAttribute('aria-expanded', 'true');
+	}
+
+	function openAppThemeMenu() {
+		appThemeWrap.classList.add('open');
+		appTheme.setAttribute('aria-expanded', 'true');
+	}
+
+	function renderAppFontFamilyChoices(fonts, selected) {
+		appFontFamilyMenu.innerHTML = '';
+		[{ value: '', label: 'System default' }].concat((fonts || []).map(function(font) {
+			return { value: font, label: font };
+		})).forEach(function(item) {
+			const choice = document.createElement('button');
+			choice.type = 'button';
+			choice.className = 'app-font-family-choice';
+			choice.dataset.value = item.value;
+			choice.textContent = item.label;
+			choice.setAttribute('role', 'option');
+			var isActive = item.value === (selected || '');
+			choice.classList.toggle('is-active', isActive);
+			choice.setAttribute('aria-selected', isActive ? 'true' : 'false');
+			if (item.value) {
+				choice.style.fontFamily = "'" + item.value + "'";
+			}
+			choice.addEventListener('click', function(event) {
+				event.stopPropagation();
+				const cfg = Object.assign({}, currentCfg, { uiFontFamily: item.value });
+				currentCfg = cfg;
+				updateAppFontFamilyButton(item.value);
+				updateAppFontFamilyChoices(item.value);
+				applyUIConfig(cfg);
+				closeAppFontFamilyMenu();
+				window.go.main.App.SaveConfig(cfg);
+			});
+			appFontFamilyMenu.appendChild(choice);
+		});
+		updateAppFontFamilyButton(selected);
+	}
+
+	function renderAppThemeChoices(selected) {
+		var normalizedSelected = selected || 'solarized-dark';
+		appThemeMenu.innerHTML = '';
+		APP_THEMES.forEach(function(item) {
+			const choice = document.createElement('button');
+			choice.type = 'button';
+			choice.className = 'app-font-family-choice';
+			choice.dataset.value = item.value;
+			choice.textContent = item.label;
+			choice.setAttribute('role', 'option');
+			var isActive = item.value === normalizedSelected;
+			choice.classList.toggle('is-active', isActive);
+			choice.setAttribute('aria-selected', isActive ? 'true' : 'false');
+			choice.addEventListener('click', function(event) {
+				event.stopPropagation();
+				const cfg = Object.assign({}, currentCfg, { theme: item.value });
+				currentCfg = cfg;
+				updateAppThemeButton(item.value);
+				updateAppThemeChoices(item.value);
+				applyUIConfig(cfg);
+				closeAppThemeMenu();
+				window.go.main.App.SaveConfig(cfg);
+			});
+			appThemeMenu.appendChild(choice);
+		});
+		updateAppThemeButton(normalizedSelected);
+	}
 
 	appDirPick.addEventListener('click', function() {
 		beginCurrentScanUI();
@@ -474,11 +597,22 @@
 		applyUIConfig({ uiFontSize: size });
 	});
 
-	appFontFamily.addEventListener('change', function() {
-		const cfg = Object.assign({}, currentCfg, { uiFontFamily: appFontFamily.value });
-		currentCfg = cfg;
-		applyUIConfig(cfg);
-		window.go.main.App.SaveConfig(cfg);
+	appFontFamily.addEventListener('click', function(event) {
+		event.stopPropagation();
+		if (appFontFamilyWrap.classList.contains('open')) {
+			closeAppFontFamilyMenu();
+			return;
+		}
+		openAppFontFamilyMenu();
+	});
+
+	appTheme.addEventListener('click', function(event) {
+		event.stopPropagation();
+		if (appThemeWrap.classList.contains('open')) {
+			closeAppThemeMenu();
+			return;
+		}
+		openAppThemeMenu();
 	});
 
 	appFontSlider.addEventListener('change', function() {
@@ -486,13 +620,6 @@
 		currentCfg = cfg;
 		window.go.main.App.SaveConfig(cfg);
 	});
-
-		appTheme.addEventListener('change', function() {
-			const cfg = Object.assign({}, currentCfg, { theme: appTheme.value });
-			currentCfg = cfg;
-			applyUIConfig(cfg);
-			window.go.main.App.SaveConfig(cfg);
-		});
 
 		document.getElementById('app-rescan-btn').addEventListener('click', function() {
 			appMenuToggle.classList.remove('open');
@@ -522,16 +649,9 @@
 		const size = cfg.uiFontSize || 20;
 		appFontSlider.value = size;
 		appFontVal.textContent = size + 'px';
-		appTheme.value = cfg.theme || 'solarized-dark';
+		renderAppThemeChoices(cfg.theme || 'solarized-dark');
 		window.go.main.App.ListFonts().then(function(fonts) {
-			while (appFontFamily.options.length > 1) appFontFamily.remove(1);
-			fonts.forEach(function(f) {
-				const opt = document.createElement('option');
-				opt.value = f;
-				opt.textContent = f;
-				appFontFamily.appendChild(opt);
-			});
-			appFontFamily.value = cfg.uiFontFamily || '';
+			renderAppFontFamilyChoices(fonts, cfg.uiFontFamily || '');
 		});
 	}
 
@@ -543,6 +663,15 @@
 		startupScanPending = Boolean(cfg.libraryDir && allBooks.length === 0);
 		if (startupScanPending) {
 			beginEmptyScanUI();
+		}
+	});
+
+	document.addEventListener('mousedown', function(event) {
+		if (!appFontFamilyWrap.contains(event.target)) {
+			closeAppFontFamilyMenu();
+		}
+		if (!appThemeWrap.contains(event.target)) {
+			closeAppThemeMenu();
 		}
 	});
 
