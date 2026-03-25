@@ -34,9 +34,11 @@ import "C"
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -54,6 +56,7 @@ type App struct {
 	handler http.Handler
 	cfg     Config
 	fonts   []string
+	views   []View
 }
 
 func NewApp(root string) *App {
@@ -68,6 +71,9 @@ func (a *App) startup(ctx context.Context) {
 	a.fonts = listSystemFonts()
 	if a.root == "" {
 		a.root = a.cfg.LibraryDir
+	}
+	if a.root != "" {
+		a.views = loadViews(a.root)
 	}
 	root := a.root
 	a.mu.Unlock()
@@ -224,8 +230,12 @@ func (a *App) SaveConfig(cfg Config) error {
 	if cfg.LibraryDir == "" {
 		a.root = ""
 		a.lib = model.Library{}
+		a.views = nil
 		a.handler = nil
 	} else if a.root != "" {
+		if cfg.LibraryDir != root {
+			a.views = loadViews(a.root)
+		}
 		a.handler = server.NewHandler(a.root, a.lib, a.fonts, cfg.Theme)
 	}
 	a.mu.Unlock()
@@ -256,6 +266,7 @@ func (a *App) PickAndScan() (model.Library, error) {
 	}
 	a.mu.Lock()
 	a.cfg.LibraryDir = dir
+	a.views = loadViews(dir)
 	cfg := a.cfg
 	lib := a.lib
 	a.mu.Unlock()
@@ -265,6 +276,93 @@ func (a *App) PickAndScan() (model.Library, error) {
 
 func (a *App) ListFonts() []string {
 	return a.getFonts()
+}
+
+func (a *App) GetViews() []View {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.views == nil {
+		return []View{}
+	}
+	return a.views
+}
+
+func (a *App) CreateView(name string) (View, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	v := View{
+		ID:        fmt.Sprintf("%x", time.Now().UnixNano()),
+		Name:      name,
+		BookPaths: []string{},
+	}
+	a.views = append(a.views, v)
+	return v, saveViews(a.root, a.views)
+}
+
+func (a *App) DeleteView(id string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	updated := make([]View, 0, len(a.views))
+	for _, v := range a.views {
+		if v.ID != id {
+			updated = append(updated, v)
+		}
+	}
+	a.views = updated
+	return saveViews(a.root, a.views)
+}
+
+func (a *App) RenameView(id, name string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for i, v := range a.views {
+		if v.ID == id {
+			a.views[i].Name = name
+			break
+		}
+	}
+	return saveViews(a.root, a.views)
+}
+
+func (a *App) AddBooksToView(id string, paths []string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for i, v := range a.views {
+		if v.ID != id {
+			continue
+		}
+		existing := make(map[string]bool, len(v.BookPaths))
+		for _, p := range v.BookPaths {
+			existing[p] = true
+		}
+		for _, p := range paths {
+			if !existing[p] {
+				a.views[i].BookPaths = append(a.views[i].BookPaths, p)
+				existing[p] = true
+			}
+		}
+		break
+	}
+	return saveViews(a.root, a.views)
+}
+
+func (a *App) RemoveBookFromView(id, path string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for i, v := range a.views {
+		if v.ID != id {
+			continue
+		}
+		updated := make([]string, 0, len(v.BookPaths))
+		for _, p := range v.BookPaths {
+			if p != path {
+				updated = append(updated, p)
+			}
+		}
+		a.views[i].BookPaths = updated
+		break
+	}
+	return saveViews(a.root, a.views)
 }
 
 func listSystemFonts() []string {
