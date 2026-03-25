@@ -670,6 +670,17 @@ body.sidebar-collapsed #sidebar {
   background: var(--mix-mauve-12-surface0);
 }
 
+#continue-reading:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#continue-reading:disabled:hover {
+  color: var(--text);
+  border-color: var(--surface1);
+  background: var(--surface0);
+}
+
 #library-btn.current,
 #stats-btn.current {
   opacity: 0.35;
@@ -711,6 +722,11 @@ body.sidebar-collapsed #sidebar {
 #view-to-filter-btn:focus-visible::after {
   opacity: 1;
   animation: tooltip-drop 0.18s ease-out forwards;
+}
+
+#continue-reading:disabled::after {
+  opacity: 0;
+  animation: none;
 }
 
 @keyframes tooltip-drop {
@@ -1281,7 +1297,7 @@ input[type="range"].prefs-input {
 
 .app-submenu {
   position: absolute;
-  left: calc(100% - 4px);
+  left: calc(100% - 8px);
   top: -8px;
   background: var(--mantle);
   backdrop-filter: blur(12px);

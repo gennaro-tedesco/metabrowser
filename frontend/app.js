@@ -963,11 +963,12 @@
   });
 
   (function initContinueReading() {
+    continueReading.disabled = true;
     try {
       var data = JSON.parse(localStorage.getItem("lastRead"));
       if (data && data.path) {
         continueReading.title = "Continue reading: " + (data.title || "");
-        continueReading.style.display = "";
+        continueReading.disabled = false;
         continueReading.addEventListener("click", function () {
           window.location.href =
             "/read/" + data.path + "?chapter=" + (data.chapter || 0);
