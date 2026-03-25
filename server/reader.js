@@ -164,6 +164,14 @@
         bg: ["#191724", "#16141f", "#1f1d2e", "#26233a", "#403d52", "#e0def4"],
         fg: ["#e0def4", "#ebbcba", "#908caa", "#6e6a86", "#c4a7e7", "#191724"],
       },
+      "ayu-mirage": {
+        bg: ["#1f2430", "#1c212b", "#171b24", "#242936", "#33415e", "#cbccc6"],
+        fg: ["#cbccc6", "#8a9199", "#707a8c", "#5ccfe6", "#ffd173", "#1f2430"],
+      },
+      "iceberg-light": {
+        bg: ["#f6f7fb", "#e8ebf3", "#dcdfe7", "#d6dbe8", "#c6ccdc", "#33374c"],
+        fg: ["#33374c", "#4a4f69", "#6b7089", "#2d539e", "#7759b4", "#f6f7fb"],
+      },
     };
     var bg = localStorage.getItem("reader:bg") || "#073541";
     var fg = localStorage.getItem("reader:fg") || "#fdf6e2";
@@ -323,7 +331,7 @@
       document.documentElement.style.setProperty("--reader-progress-book", fg);
       document.documentElement.style.setProperty(
         "--reader-progress-chapter",
-        blendColors(parseColor(fg), 0.6, parseColor(bg)),
+        fg,
       );
       bgCurrent.style.backgroundColor = bg;
       fgCurrent.style.backgroundColor = fg;

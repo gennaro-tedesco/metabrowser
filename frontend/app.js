@@ -737,6 +737,8 @@
     { value: "tokyonight", label: "Tokyo Night" },
     { value: "kanagawa", label: "Kanagawa" },
     { value: "rose-pine", label: "Rose Pine" },
+    { value: "ayu-mirage", label: "Ayu Mirage" },
+    { value: "iceberg-light", label: "Iceberg Light" },
   ];
 
   function updateAppThemeButton(value) {

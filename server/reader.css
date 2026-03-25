@@ -350,10 +350,19 @@ body.sidebar-collapsed .reader-sidebar {
   gap: 5px;
 }
 .reader-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
 }
+.reader-progress-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: var(--reader-progress-book);
+}
 .reader-progress-track {
-  width: 100%;
+  flex: 1 1 auto;
   height: 4px;
   border-radius: 999px;
   background: var(--surface0);
