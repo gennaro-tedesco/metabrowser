@@ -87,6 +87,9 @@
   let startupScanPending = false;
   let activeViewAddOpen = false;
   let activeViewAddQuery = "";
+  let activeViewAddScope = "all";
+  let viewAddScopeMenuEl = null;
+  let viewAddScopeCloseHandler = null;
   let searchScope = "all";
   const SEARCH_SCOPES = [
     { value: "all", label: "all" },
@@ -887,12 +890,15 @@
     searchScopeEl.dataset.value = value || "all";
   }
 
-  function updateSearchPlaceholder(value) {
+  function searchPlaceholderForScope(value) {
     var normalizedValue = value || "all";
-    search.placeholder =
-      normalizedValue === "all"
-        ? "search title, authors, tags..."
-        : "search " + normalizedValue;
+    return normalizedValue === "all"
+      ? "search title, authors, tags..."
+      : "search " + normalizedValue;
+  }
+
+  function updateSearchPlaceholder(value) {
+    search.placeholder = searchPlaceholderForScope(value);
   }
 
   function updateSearchScopeChoices(value) {
@@ -1051,6 +1057,7 @@
     ) {
       activeViewAddOpen = false;
       activeViewAddQuery = "";
+      activeViewAddScope = "all";
       renderFiltered();
     }
   });
@@ -1209,6 +1216,7 @@
     activeViewId = "";
     activeViewAddOpen = false;
     activeViewAddQuery = "";
+    activeViewAddScope = "all";
     search.value = "";
     searchClear.classList.remove("visible");
     updateNavState();
@@ -1681,35 +1689,57 @@
     titleWrap.className = "book-row-title-wrap";
 
     if (activeViewAddOpen) {
+      const searchRow = document.createElement("div");
+      searchRow.className = "search-input-row view-add-search-row";
+      searchRow.addEventListener("click", function (event) {
+        event.stopPropagation();
+      });
+
       const input = document.createElement("input");
       input.type = "text";
-      input.className = "view-name-input";
-      input.placeholder = "Search books…";
+      input.className = "view-add-search-input";
+      input.placeholder = searchPlaceholderForScope(activeViewAddScope);
       input.autocomplete = "off";
       input.autocorrect = "off";
       input.autocapitalize = "off";
       input.spellcheck = false;
       input.value = activeViewAddQuery;
-      input.addEventListener("click", function (event) {
-        event.stopPropagation();
-      });
       input.addEventListener("input", function () {
         activeViewAddQuery = input.value;
         renderFiltered();
       });
       input.addEventListener("keydown", function (event) {
         if (event.key === "Escape") {
+          closeViewAddScopeDropdown();
           activeViewAddOpen = false;
           activeViewAddQuery = "";
+          activeViewAddScope = "all";
           renderFiltered();
         }
       });
-      titleWrap.appendChild(input);
+
+      const scopeBtn = document.createElement("button");
+      scopeBtn.type = "button";
+      scopeBtn.className = "view-add-scope-btn";
+      scopeBtn.setAttribute("aria-haspopup", "listbox");
+      scopeBtn.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>';
+      scopeBtn.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        openViewAddScopeDropdown(scopeBtn, input);
+      });
+
+      searchRow.appendChild(input);
+      searchRow.appendChild(scopeBtn);
+      titleWrap.appendChild(searchRow);
+
       setTimeout(function () {
         input.focus();
         input.setSelectionRange(input.value.length, input.value.length);
       }, 0);
     } else {
+      closeViewAddScopeDropdown();
       const title = document.createElement("span");
       title.className = "book-row-title";
       title.innerHTML = "&nbsp;";
@@ -1742,7 +1772,7 @@
     const activeViewPaths = new Set(view.bookPaths || []);
     const matches = allBooks.filter(function (book) {
       if (activeViewPaths.has(book.path)) return false;
-      const haystack = searchHaystack(book, searchScope);
+      const haystack = searchHaystack(book, activeViewAddScope);
       return haystack.includes(q);
     });
 
@@ -1763,6 +1793,7 @@
               function () {
                 activeViewAddOpen = false;
                 activeViewAddQuery = "";
+                activeViewAddScope = "all";
                 mergeViewBooks(view.id, [book.path]);
               },
             );
@@ -2073,6 +2104,7 @@
       activeViewId = activeViewId === view.id ? "" : view.id;
       activeViewAddOpen = false;
       activeViewAddQuery = "";
+      activeViewAddScope = "all";
       renderFiltered();
       updateViewButtons();
     });
@@ -2213,6 +2245,61 @@
       viewPickerCloseHandler = null;
     }
     viewPickerAnchorEl = null;
+  }
+
+  function openViewAddScopeDropdown(anchorEl, input) {
+    closeViewAddScopeDropdown();
+    const menu = document.createElement("div");
+    menu.id = "view-add-scope-menu";
+    menu.className = "app-font-family-menu";
+    menu.style.cssText =
+      "position:fixed;opacity:1;pointer-events:auto;z-index:9999;";
+    menu.setAttribute("role", "listbox");
+    menu.setAttribute("aria-label", "Search scope");
+    SEARCH_SCOPES.forEach(function (item) {
+      const choice = document.createElement("button");
+      choice.type = "button";
+      choice.className = "app-font-family-choice";
+      choice.dataset.value = item.value;
+      choice.textContent = item.label;
+      choice.setAttribute("role", "option");
+      const isActive = item.value === activeViewAddScope;
+      choice.classList.toggle("is-active", isActive);
+      choice.setAttribute("aria-selected", isActive ? "true" : "false");
+      choice.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        activeViewAddScope = item.value;
+        input.placeholder = searchPlaceholderForScope(item.value);
+        closeViewAddScopeDropdown();
+        renderFiltered();
+      });
+      menu.appendChild(choice);
+    });
+    document.body.appendChild(menu);
+    const rect = anchorEl.getBoundingClientRect();
+    menu.style.top = rect.bottom + 4 + "px";
+    menu.style.left = Math.max(0, rect.right - menu.offsetWidth) + "px";
+    viewAddScopeMenuEl = menu;
+    viewAddScopeCloseHandler = function (event) {
+      if (menu.contains(event.target) || anchorEl.contains(event.target))
+        return;
+      closeViewAddScopeDropdown();
+    };
+    setTimeout(function () {
+      document.addEventListener("mousedown", viewAddScopeCloseHandler);
+    }, 0);
+  }
+
+  function closeViewAddScopeDropdown() {
+    if (viewAddScopeMenuEl) {
+      viewAddScopeMenuEl.remove();
+      viewAddScopeMenuEl = null;
+    }
+    if (viewAddScopeCloseHandler) {
+      document.removeEventListener("mousedown", viewAddScopeCloseHandler);
+      viewAddScopeCloseHandler = null;
+    }
   }
 
   if (viewToFilterBtn) {

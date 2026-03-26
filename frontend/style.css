@@ -339,7 +339,18 @@ body.sidebar-collapsed #sidebar {
   flex: 0 0 auto;
 }
 
-#search-scope-menu .app-font-family-choice {
+.view-add-search-row {
+  width: 50%;
+}
+
+#view-add-scope-menu {
+  width: 120px;
+  max-height: none;
+  overflow-y: visible;
+}
+
+#search-scope-menu .app-font-family-choice,
+#view-add-scope-menu .app-font-family-choice {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   color: var(--overlay1);
@@ -1580,6 +1591,40 @@ body.resizing-views {
   font-size: var(--fs-base);
   padding: 3px 8px;
   outline: none;
+}
+
+.view-add-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  padding: 2px 0;
+  outline: none;
+}
+
+.view-add-search-input::placeholder {
+  color: var(--overlay0);
+}
+
+.view-add-scope-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--overlay1);
+  display: inline-flex;
+  align-items: center;
+}
+
+.view-add-scope-btn:hover {
+  color: var(--overlay0);
 }
 
 .view-name-input-inline {
