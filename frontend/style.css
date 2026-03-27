@@ -96,7 +96,7 @@ body.sidebar-collapsed #sidebar {
   object-fit: contain;
   display: block;
   flex-shrink: 0;
-  cursor: pointer;
+  cursor: default;
 }
 
 #nav {
@@ -300,6 +300,7 @@ body.sidebar-collapsed #sidebar {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
+  transform: rotate(90deg) translateX(-12px);
 }
 
 #search-scope:hover,
@@ -310,7 +311,7 @@ body.sidebar-collapsed #sidebar {
 
 #search-scope-wrap {
   position: absolute;
-  right: 30px;
+  right: 5px;
   top: 50%;
   flex: 0 0 auto;
   min-width: 0;
@@ -335,9 +336,6 @@ body.sidebar-collapsed #sidebar {
   transform: translateX(-50%) scaleY(1);
 }
 
-#search-scope svg {
-  flex: 0 0 auto;
-}
 
 .view-add-search-row {
   width: 50%;
@@ -351,7 +349,7 @@ body.sidebar-collapsed #sidebar {
 
 #search-scope-menu .app-font-family-choice,
 #view-add-scope-menu .app-font-family-choice {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--fs-sm);
   color: var(--overlay1);
 }
@@ -1315,7 +1313,7 @@ input[type="range"].prefs-input {
 }
 
 .app-menu-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--fs-xs);
   color: var(--overlay1);
   min-width: 68px;
@@ -1348,6 +1346,25 @@ input[type="range"].prefs-input {
 
 .app-dir-btn:hover {
   border-color: var(--blue);
+  color: var(--blue);
+}
+
+.app-lang-btn {
+  background: none;
+  border: none;
+  color: var(--subtext0);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.app-lang-btn:hover {
+  color: var(--text);
+}
+
+.app-lang-btn.is-active {
   color: var(--blue);
 }
 

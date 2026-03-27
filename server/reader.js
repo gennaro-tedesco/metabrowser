@@ -1,4 +1,63 @@
 (function () {
+  var READER_I18N = {
+    en: {
+      collapseSidebar: "Collapse sidebar",
+      expandSidebar: "Expand sidebar",
+      searchChapter: "Search chapter",
+      searchBook: "Search book",
+      switchToBook: "Switch to book search",
+      switchToChapter: "Switch to chapter search",
+      defaultFont: "Default",
+      tooltipChapter: "chapter",
+      tooltipBook: "book",
+      tooltipLibrary: "library",
+    },
+    de: {
+      collapseSidebar: "Seitenleiste einblenden",
+      expandSidebar: "Seitenleiste ausblenden",
+      searchChapter: "Kapitel durchsuchen",
+      searchBook: "Buch durchsuchen",
+      switchToBook: "Zur Buchsuche wechseln",
+      switchToChapter: "Zur Kapitelsuche wechseln",
+      defaultFont: "Standard",
+      tooltipChapter: "Kapitel",
+      tooltipBook: "Buch",
+      tooltipLibrary: "Bibliothek",
+    },
+    it: {
+      collapseSidebar: "Comprimi barra laterale",
+      expandSidebar: "Espandi barra laterale",
+      searchChapter: "Cerca nel capitolo",
+      searchBook: "Cerca nel libro",
+      switchToBook: "Passa alla ricerca nel libro",
+      switchToChapter: "Passa alla ricerca nel capitolo",
+      defaultFont: "Predefinito",
+      tooltipChapter: "capitolo",
+      tooltipBook: "libro",
+      tooltipLibrary: "libreria",
+    },
+    zh: {
+      collapseSidebar: "\u6536\u8d77\u4fa7\u8fb9\u680f",
+      expandSidebar: "\u5c55\u5f00\u4fa7\u8fb9\u680f",
+      searchChapter: "\u641c\u7d22\u7ae0\u8282",
+      searchBook: "\u641c\u7d22\u4e66\u7c4d",
+      switchToBook: "\u5207\u6362\u5230\u4e66\u7c4d\u641c\u7d22",
+      switchToChapter: "\u5207\u6362\u5230\u7ae0\u8282\u641c\u7d22",
+      defaultFont: "\u9ed8\u8ba4\u5b57\u4f53",
+      tooltipChapter: "\u7ae0\u8282",
+      tooltipBook: "\u4e66\u7c4d",
+      tooltipLibrary: "\u4e66\u5e93",
+    },
+  };
+  var readerLang =
+    (typeof localStorage !== "undefined" &&
+      localStorage.getItem("colophon-lang")) ||
+    "en";
+  var rt = function (key) {
+    var dict = READER_I18N[readerLang] || READER_I18N.en;
+    return dict[key] || READER_I18N.en[key] || key;
+  };
+
   function parseColor(str) {
     var s = str.trim();
     if (s.charAt(0) === "#") {
@@ -128,6 +187,28 @@
     var controlGroups = Array.from(
       document.querySelectorAll(".reader-control-group"),
     );
+
+    if (searchInput) {
+      searchInput.placeholder = rt("searchChapter");
+      searchInput.setAttribute("aria-label", rt("searchChapter"));
+    }
+    if (searchScopeToggle) {
+      searchScopeToggle.dataset.tooltip = rt("tooltipChapter");
+      searchScopeToggle.setAttribute("aria-label", rt("switchToBook"));
+    }
+    var libraryAction = document.querySelector(".reader-library-action");
+    if (libraryAction) {
+      libraryAction.setAttribute("aria-label", rt("tooltipLibrary"));
+      libraryAction.dataset.tooltip = rt("tooltipLibrary");
+    }
+    if (sidebarToggle) {
+      sidebarToggle.setAttribute("aria-label", rt("collapseSidebar"));
+    }
+    var defaultFontBtn = document.querySelector(
+      ".reader-font-choice[data-font='']",
+    );
+    if (defaultFontBtn) defaultFontBtn.textContent = rt("defaultFont");
+    if (fontCurrent) fontCurrent.textContent = rt("defaultFont");
     var themePalettes = {
       "solarized-dark": {
         bg: ["#073541", "#002b36", "#00141a", "#1e1e1e", "#eee8d5", "#fdf6e3"],
@@ -219,7 +300,9 @@
         sidebarToggle.textContent = width === SIDEBAR_COLLAPSED ? "❯" : "❮";
         sidebarToggle.setAttribute(
           "aria-label",
-          width === SIDEBAR_COLLAPSED ? "Expand sidebar" : "Collapse sidebar",
+          width === SIDEBAR_COLLAPSED
+            ? rt("expandSidebar")
+            : rt("collapseSidebar"),
         );
       }
     }
@@ -340,7 +423,7 @@
       lhCurrent.textContent = lh;
       sizeCurrent.textContent = size.replace("px", "");
       padCurrent.textContent = padX.replace("px", "");
-      fontCurrent.textContent = fontFamily || "Default";
+      fontCurrent.textContent = fontFamily || rt("defaultFont");
       searchMatches.forEach(function (match, idx) {
         applySearchMarkStyle(match, idx === activeSearchIndex);
       });
@@ -594,21 +677,18 @@
     function updateSearchScopeUI() {
       if (!searchScopeToggle || !searchScopeIcon || !searchInput) return;
       if (searchScope === "book") {
-        searchScopeToggle.dataset.tooltip = "book";
-        searchScopeToggle.setAttribute(
-          "aria-label",
-          "Switch to chapter search",
-        );
-        searchInput.placeholder = "Search book";
-        searchInput.setAttribute("aria-label", "Search book");
+        searchScopeToggle.dataset.tooltip = rt("tooltipBook");
+        searchScopeToggle.setAttribute("aria-label", rt("switchToChapter"));
+        searchInput.placeholder = rt("searchBook");
+        searchInput.setAttribute("aria-label", rt("searchBook"));
         searchScopeIcon.innerHTML =
           '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>';
         return;
       }
-      searchScopeToggle.dataset.tooltip = "chapter";
-      searchScopeToggle.setAttribute("aria-label", "Switch to book search");
-      searchInput.placeholder = "Search chapter";
-      searchInput.setAttribute("aria-label", "Search chapter");
+      searchScopeToggle.dataset.tooltip = rt("tooltipChapter");
+      searchScopeToggle.setAttribute("aria-label", rt("switchToBook"));
+      searchInput.placeholder = rt("searchChapter");
+      searchInput.setAttribute("aria-label", rt("searchChapter"));
       searchScopeIcon.innerHTML =
         '<path d="M8 6h10"/><path d="M8 12h8"/><path d="M8 18h6"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/>';
     }

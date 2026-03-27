@@ -46,12 +46,9 @@
   const statsBtnViewIcon =
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
 
-  const GROUP_LABELS = {
-    language: "Language",
-    series: "Series",
-    tags: "Tags",
-    author: "Author",
-  };
+  function groupLabel(key) {
+    return t("groups." + key);
+  }
   const CHART_PALETTE_VARS = [
     "--blue",
     "--lavender",
@@ -91,14 +88,19 @@
   let viewAddScopeMenuEl = null;
   let viewAddScopeCloseHandler = null;
   let searchScope = "all";
-  const SEARCH_SCOPES = [
-    { value: "all", label: "all" },
-    { value: "title", label: "title" },
-    { value: "authors", label: "authors" },
-    { value: "series", label: "series" },
-    { value: "tags", label: "tags" },
-    { value: "language", label: "language" },
+  const SEARCH_SCOPE_VALUES = [
+    "all",
+    "title",
+    "authors",
+    "series",
+    "tags",
+    "language",
   ];
+  function searchScopes() {
+    return SEARCH_SCOPE_VALUES.map(function (v) {
+      return { value: v, label: t("scopes." + v) };
+    });
+  }
 
   function clampSidebarWidth(value) {
     return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, value));
@@ -116,7 +118,15 @@
       sidebarToggle.textContent = width === SIDEBAR_COLLAPSED ? "❯" : "❮";
       sidebarToggle.setAttribute(
         "aria-label",
-        width === SIDEBAR_COLLAPSED ? "Expand sidebar" : "Collapse sidebar",
+        width === SIDEBAR_COLLAPSED
+          ? t("sidebar.expand")
+          : t("sidebar.collapse"),
+      );
+      sidebarToggle.setAttribute(
+        "aria-label",
+        width === SIDEBAR_COLLAPSED
+          ? t("sidebar.expand")
+          : t("sidebar.collapse"),
       );
     }
   }
@@ -360,14 +370,14 @@
       }
       return;
     }
-    renderLibraryDirectoryState("", "", "Choose library folder");
+    renderLibraryDirectoryState("", "", t("library.chooseFolder"));
   }
 
   function showEmptyLibrary() {
     renderLibraryDirectoryState(
-      "No books found",
-      "The selected folder is valid, but it does not contain any supported books.",
-      "Choose another folder",
+      t("library.noBooksTitle"),
+      t("library.noBooksDetail"),
+      t("library.chooseAnother"),
     );
   }
 
@@ -429,10 +439,12 @@
 
   function renderScanPlaceholder() {
     list.innerHTML =
-      '<div class="scan-loading"><div class="scan-loading-spinner" aria-hidden="true"></div><div class="scan-loading-title">Scanning library…</div><div class="scan-loading-meta">' +
+      '<div class="scan-loading"><div class="scan-loading-spinner" aria-hidden="true"></div><div class="scan-loading-title">' +
+      t("library.scanning") +
+      '</div><div class="scan-loading-meta">' +
       (scanBookCount > 0
-        ? scanBookCount + " books indexed"
-        : "This may take a moment") +
+        ? t("library.booksIndexed", { count: scanBookCount })
+        : t("library.mayTakeAMoment")) +
       "</div></div>";
   }
 
@@ -445,8 +457,8 @@
       scanStatus.classList.toggle("hidden", !showBadge);
       scanStatus.textContent = showBadge
         ? scanBookCount > 0
-          ? "Refreshing library… " + scanBookCount
-          : "Refreshing library…"
+          ? t("library.refreshingCount", { count: scanBookCount })
+          : t("library.refreshing")
         : "";
     }
     if (
@@ -559,6 +571,28 @@
       loadViews();
     });
   }
+
+  function localizeDOM() {
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (key.startsWith("[")) {
+        var match = key.match(/^\[([^\]]+)\](.+)$/);
+        if (match) el.setAttribute(match[1], t(match[2]));
+      } else {
+        el.textContent = t(key);
+      }
+    });
+  }
+
+  document.querySelectorAll(".app-lang-btn").forEach(function (btn) {
+    var lang = btn.getAttribute("data-lang");
+    if (i18next.language === lang) btn.classList.add("is-active");
+    btn.addEventListener("click", function () {
+      window.setLanguage(lang);
+    });
+  });
+
+  localizeDOM();
 
   loadLibrary();
   loadViews();
@@ -744,7 +778,7 @@
   appMenuPanel.addEventListener("mouseleave", scheduleHideAppMenu);
 
   function updateAppFontFamilyButton(value) {
-    appFontFamily.textContent = value || "System default";
+    appFontFamily.textContent = value || t("prefs.systemDefault");
     appFontFamily.dataset.value = value || "";
   }
 
@@ -822,7 +856,7 @@
 
   function renderAppFontFamilyChoices(fonts, selected) {
     appFontFamilyMenu.innerHTML = "";
-    [{ value: "", label: "System default" }]
+    [{ value: "", label: t("prefs.systemDefault") }]
       .concat(
         (fonts || []).map(function (font) {
           return { value: font, label: font };
@@ -893,8 +927,10 @@
   function searchPlaceholderForScope(value) {
     var normalizedValue = value || "all";
     return normalizedValue === "all"
-      ? "search title, authors, tags..."
-      : "search " + normalizedValue;
+      ? t("search.placeholder")
+      : t("search.placeholderScoped", {
+          scope: t("scopes." + normalizedValue),
+        });
   }
 
   function updateSearchPlaceholder(value) {
@@ -914,7 +950,7 @@
   function renderSearchScopeChoices(selected) {
     var normalizedSelected = selected || "all";
     searchScopeMenu.innerHTML = "";
-    SEARCH_SCOPES.forEach(function (item) {
+    searchScopes().forEach(function (item) {
       const choice = document.createElement("button");
       choice.type = "button";
       choice.className = "app-font-family-choice";
@@ -1067,7 +1103,9 @@
     try {
       var data = JSON.parse(localStorage.getItem("lastRead"));
       if (data && data.path) {
-        continueReading.title = "Continue reading: " + (data.title || "");
+        continueReading.title = t("books.continueReading", {
+          title: data.title || "",
+        });
         continueReading.disabled = false;
         continueReading.addEventListener("click", function () {
           window.location.href =
@@ -1114,7 +1152,6 @@
     setView("stats");
   });
   updateViewButtons();
-  logo.addEventListener("click", clearFilters);
   drilldownClose.addEventListener("click", closeDrilldownModal);
   drilldownBackdrop.addEventListener("click", (event) => {
     if (event.target === drilldownBackdrop) closeDrilldownModal();
@@ -1317,7 +1354,7 @@
     if (!filteredBooks.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "no books found";
+      empty.textContent = t("books.noBooks");
       drilldownBody.appendChild(empty);
     } else {
       const results = document.createElement("div");
@@ -1427,7 +1464,7 @@
 
     const allEl = document.createElement("div");
     allEl.className = "all-item";
-    allEl.innerHTML = `<span>All books</span><span class="group-item-count">${allBooks.length}</span>`;
+    allEl.innerHTML = `<span>${t("nav.allBooks")}</span><span class="group-item-count">${allBooks.length}</span>`;
     allEl.addEventListener("click", clearFilters);
     nav.appendChild(allEl);
     sectionRefs.set("all", allEl);
@@ -1442,7 +1479,7 @@
 
       const header = document.createElement("div");
       header.className = "group-header";
-      header.innerHTML = `<span>${GROUP_LABELS[key]}</span><span class="group-chevron">&#9654;</span>`;
+      header.innerHTML = `<span>${groupLabel(key)}</span><span class="group-chevron">&#9654;</span>`;
       header.addEventListener("click", () => section.classList.toggle("open"));
 
       section.addEventListener("mouseenter", () => {
@@ -1658,7 +1695,7 @@
     if (filtered.length === 0 && !activeView) {
       const emptyEl = document.createElement("div");
       emptyEl.className = "empty";
-      emptyEl.textContent = "no books found";
+      emptyEl.textContent = t("books.noBooks");
       list.appendChild(emptyEl);
       return;
     }
@@ -1748,7 +1785,7 @@
       const addBtn = document.createElement("button");
       addBtn.type = "button";
       addBtn.className = "book-row-add-btn";
-      addBtn.title = "Add to view";
+      addBtn.title = t("books.addToView");
       addBtn.innerHTML =
         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
       addBtn.addEventListener("click", function (event) {
@@ -1779,7 +1816,7 @@
     if (matches.length === 0) {
       const emptyEl = document.createElement("div");
       emptyEl.className = "empty";
-      emptyEl.textContent = "no books found";
+      emptyEl.textContent = t("books.noBooks");
       wrap.appendChild(emptyEl);
       return wrap;
     }
@@ -1824,7 +1861,7 @@
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
     deleteBtn.className = "active-view-banner-delete";
-    deleteBtn.title = "Delete view";
+    deleteBtn.title = t("views.deleteView");
     deleteBtn.innerHTML =
       '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
     deleteBtn.addEventListener("click", function (e) {
@@ -1857,7 +1894,7 @@
     if (books.length === 0) {
       const emptyEl = document.createElement("div");
       emptyEl.className = "empty";
-      emptyEl.textContent = "no books found";
+      emptyEl.textContent = t("books.noBooks");
       stats.appendChild(emptyEl);
       return;
     }
@@ -1865,13 +1902,13 @@
     ["tags", "series", "language"].forEach((type) => {
       const card = document.createElement("section");
       card.className = "stats-card";
-      card.innerHTML = `<div class="stats-card-label">${GROUP_LABELS[type]}</div>`;
+      card.innerHTML = `<div class="stats-card-label">${groupLabel(type)}</div>`;
 
       const distribution = buildDistribution(books, type);
       if (distribution.labels.length === 0) {
         const emptyEl = document.createElement("div");
         emptyEl.className = "empty";
-        emptyEl.textContent = "no data";
+        emptyEl.textContent = t("books.noData");
         card.appendChild(emptyEl);
         stats.appendChild(card);
         return;
@@ -2041,7 +2078,7 @@
     header.className = "views-header";
 
     const headerLabel = document.createElement("span");
-    headerLabel.textContent = "Views";
+    headerLabel.textContent = t("nav.views");
 
     const headerActions = document.createElement("span");
     headerActions.className = "views-header-actions";
@@ -2049,7 +2086,7 @@
     const createBtn = document.createElement("button");
     createBtn.type = "button";
     createBtn.className = "view-action-btn";
-    createBtn.title = "New view";
+    createBtn.title = t("views.newView");
     createBtn.innerHTML =
       '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
     createBtn.addEventListener("click", function (e) {
@@ -2120,7 +2157,7 @@
     const input = document.createElement("input");
     input.type = "text";
     input.className = "view-name-input";
-    input.placeholder = "View name…";
+    input.placeholder = t("views.namePlaceholder");
     input.autocomplete = "off";
     input.autocorrect = "off";
     input.autocapitalize = "off";
@@ -2256,7 +2293,7 @@
       "position:fixed;opacity:1;pointer-events:auto;z-index:9999;";
     menu.setAttribute("role", "listbox");
     menu.setAttribute("aria-label", "Search scope");
-    SEARCH_SCOPES.forEach(function (item) {
+    searchScopes().forEach(function (item) {
       const choice = document.createElement("button");
       choice.type = "button";
       choice.className = "app-font-family-choice";
@@ -2375,7 +2412,7 @@
       addBtn = document.createElement("button");
       addBtn.type = "button";
       addBtn.className = "book-row-add-btn";
-      addBtn.title = "Add to view";
+      addBtn.title = t("books.addToView");
       addBtn.innerHTML =
         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
       addBtn.addEventListener("click", function (e) {
@@ -2398,7 +2435,7 @@
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "book-row-remove-btn";
-      removeBtn.title = "Remove from view";
+      removeBtn.title = t("books.removeFromView");
       removeBtn.innerHTML =
         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
       removeBtn.addEventListener("click", function (e) {
@@ -2445,9 +2482,9 @@
     metaPanel.className = "book-row-meta-panel";
 
     [
-      { label: "Language", value: book.language || "" },
-      { label: "Series", value: book.series || "" },
-      { label: "Tags", value: (book.tags || []).join(", ") },
+      { label: t("meta.language"), value: book.language || "" },
+      { label: t("meta.series"), value: book.series || "" },
+      { label: t("meta.tags"), value: (book.tags || []).join(", ") },
     ].forEach(({ label, value }) => {
       if (!value) return;
       const metaRow = document.createElement("div");

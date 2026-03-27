@@ -39,7 +39,7 @@
         type="button"
         aria-label="Collapse sidebar"
       >
-        ‹
+        ❮
       </button>
       <div class="reader-sidebar-header">
         <div class="reader-book-title">{{.Title}}</div>
@@ -554,19 +554,7 @@
               href="{{.Prev}}"
               aria-label="Previous chapter"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
+              ❮
             </a>
           </div>
           {{end}} {{if .Next}}
@@ -577,19 +565,7 @@
               href="{{.Next}}"
               aria-label="Next chapter"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
+              ❯
             </a>
           </div>
           {{end}}
