@@ -476,9 +476,9 @@ func findCoverPath(pkg opfPackage, opfDir, coverItemID string) string {
 
 func joinOPFPath(opfDir, href string) string {
 	if opfDir == "." || opfDir == "" {
-		return href
+		return path.Clean(href)
 	}
-	return opfDir + "/" + href
+	return path.Clean(opfDir + "/" + href)
 }
 
 func isImageMediaType(mt string) bool {
